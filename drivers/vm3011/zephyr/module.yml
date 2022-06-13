@@ -1,0 +1,6 @@
+name: vm3011
+build:
+  cmake: .
+  kconfig: Kconfig.vm3011
+  settings:
+    dts_root: .

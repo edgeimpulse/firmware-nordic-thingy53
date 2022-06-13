@@ -1,0 +1,53 @@
+
+
+description: |
+    The VM3011 is a Digital MEMS Microphone featuring extremely 
+    low power consumption, suitable for voice activation applications
+    in battery powered consumer devices.
+
+compatible: "vesper,vm3011"
+
+include: "i2c-device.yaml"
+
+properties:
+    data-pin:
+      type: int
+      required: true
+      description: |
+        The PDM DATA pin to use.
+
+        For pins P0.0 through P0.31, use the pin number. For example,
+        to use P0.16:
+
+            data-pin = <16>;
+
+        For pins P1.0 through P1.31, add 32 to the pin number. For
+        example, to use P1.2:
+
+            data-pin = <34>;  /* 32 + 2 */
+
+    clk-pin:
+      type: int
+      required: true
+      description: |
+        The PDM CLK pin to use.
+        Set pin similarly to data-pin.
+
+    dout-gpios:
+      type: phandle-array
+      required: true
+      description: |
+        The DOUT interrupt GPIO.
+
+    lr-select:
+      type: boolean
+      required: false
+      description: |
+        The LR-select pin on the VM3011 determines the left or right channel
+        for stereo applications, where 2 VM3011 devices share the DATA and CLK 
+        lines. For mono applications, the LR-select line still needs to be tied 
+        to GND or VDD.
+        False:
+          LR-select = GND --> Left channel --> data set on falling CLK edge
+        True:
+          LR-select = VDD --> Right channel --> data set on rising CLK edge

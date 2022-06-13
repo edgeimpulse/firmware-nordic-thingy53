@@ -1,0 +1,165 @@
+# VM3011 Digital MEMS Microphone
+
+
+menuconfig VM3011
+	bool "VM3011 dmic"
+	depends on I2C
+	select NRFX_PDM
+	select SENSOR #Needed to enable the SENS_PWR_CTRL of THINGY:53
+	help
+	  Enable driver for VM3011 Digital MEMS Microphone.
+
+if VM3011
+
+config VM3011_MONO
+	bool "MONO or STEREO configuration"
+	default y
+	help
+	  Select y if MONO
+	  Select n if STEREO
+
+config VM3011_PDM_BUFFER_SIZE
+	int "Sampling buffer size"
+	default 16000
+	range 1 32767
+	help
+	  Buffer size in 16-bit words.
+	  The value 32767 is equal to the NRFX_PDM
+	  maximum PDM buffer size allowed by the driver.
+
+config VM3011_INT
+	bool "Enable the DOUT interrupt"
+	default y
+	help
+	   The device is placed in ZPL mode by default.
+	   In ZPL mode, the DOUT pin interrupt is raised when 
+	   an acoustic input exceeds the WoS (Wake on Sound) 
+	   threshold. 
+
+config VM3011_WOS_DOUT_THRESHOLD
+	int "Margin to DOUT threshold"
+	default 1
+	range 1 7
+	help
+	   Select the margin threshold above the average accoustic
+	   noise level, which triggers the DOUT pin. 
+	   1 -- 2x -- 6.0 dBSPL
+	   2 -- 3x -- 9.5 dBSPL
+	   3 -- 4x -- 12.0 dBSPL
+	   4 -- 5x -- 14.0 dBSPL
+	   5 -- 6x -- 15.5 dBSPL
+	   6 -- 7x -- 16.9 dBSPL
+	   7 -- 8x -- 18.0 dBSPL
+
+config VM3011_WOS_RMS_LPF
+	int "Sampling interval of comparator"
+	default 0
+	range 0 1
+	help
+	   Select the sampling interval of the DOUT comparator.
+	   This effectively changes the low pass corner frequency
+	   from 1Hz to 2Hz.
+	   0 -- 1Hz
+	   1 -- 2Hz
+
+config VM3011_WDT_ENABLE
+	bool "Enable the Watch Dog Timer"
+	default n
+	help
+	  Enable the Watch Dog Timer to disable the I2C logic
+	  in the rare case when the host stops toggling the SCL
+	  clock during an I2C transaction.
+
+if VM3011_WDT_ENABLE
+
+choice
+	prompt "WDT reset I2C logic delay"
+	default VM3011_WDT_DELAY_8_MS
+
+config VM3011_WDT_DELAY_8_MS
+	bool "8 ms"
+
+config VM3011_WDT_DELAY_16_MS
+	bool "16 ms"
+
+config VM3011_WDT_DELAY_32_MS
+	bool "32 ms"
+
+config VM3011_WDT_DELAY_64_MS
+	bool "64 ms"
+
+endchoice
+
+endif # VM3011_WDT_ENABLE
+
+config VM3011_FAST_MODE_COUNT_ENABLE
+	bool "Enable the Fast Mode Count"
+	default n
+	help
+	  The Fast Mode Count registers can be enabled
+	  to increase the speed of the ZPL feedback loop.
+	  This translates to how quickly the feedback loop
+	  will stabilize to new background noise levels,
+	  whenever a large change occurs.
+
+if VM3011_FAST_MODE_COUNT_ENABLE
+
+choice
+	prompt "Fast Mode Count comparator trips"
+	default VM3011_WINDOW_COMP_2_TRIPS
+	help
+	  Describes the number of times the window comparator
+	  has to trip (in the same direction) before the Fast
+	  Mode Count kicks in. Once it has kicked in, the 
+	  feedback loop clock becomes x16 faster.
+
+config VM3011_WINDOW_COMP_2_TRIPS
+	bool "2 trips"
+
+config VM3011_WINDOW_COMP_4_TRIPS
+	bool "4 trips"
+
+config VM3011_WINDOW_COMP_6_TRIPS
+	bool "6 trips"
+
+endchoice
+endif # VM3011_FAST_MODE_COUNT_ENABLE
+
+
+choice
+	prompt "Bandpass Lowpass Filter"
+	default VM3011_LPF_2_KHZ
+
+config VM3011_LPF_2_KHZ
+	bool "2 kHz"
+
+config VM3011_LPF_4_KHZ
+	bool "4 kHz"
+
+config VM3011_LPF_6_KHZ
+	bool "6 kHz"
+
+config VM3011_LPF_8_KHZ
+	bool "8 kHz"
+
+endchoice
+
+choice
+	prompt "Bandpass Highpass Filter"
+	default VM3011_HPF_800_KHZ
+
+config VM3011_HPF_200_KHZ
+	bool "200 kHz"
+
+config VM3011_HPF_300_KHZ
+	bool "300 kHz"
+
+config VM3011_HPF_400_KHZ
+	bool "400 kHz"
+
+config VM3011_HPF_800_KHZ
+	bool "800 kHz"
+
+endchoice
+
+endif # VM3011

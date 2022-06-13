@@ -1,0 +1,35 @@
+#
+# Copyright (c) 2018 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+#
+
+source "Kconfig.zephyr"
+
+menu "Nordic UART BLE GATT service sample"
+
+config BT_NUS_UART_BUFFER_SIZE
+	int "UART payload buffer element size"
+	default 244
+	help
+	  Size of the payload buffer in each RX and TX FIFO element
+
+config BT_NUS_UART_RX_WAIT_TIME
+	int "Timeout for UART RX complete event"
+	default 50
+	help
+	  Wait for RX complete event time in milliseconds
+
+endmenu
+
+config EI_INFERENCE_THREAD_STACK
+	int "Inference thread stack size"
+	default 256
+	help
+	  "Set the Edge Impulse inference thread stack size."
+
+config EI_INFERENCE_THREAD_PRIO
+	int "Inference thread priority"
+	default 5
+	help
+	  "Set the Edge Impulse inference thread priority. The lower number, the higher prority."

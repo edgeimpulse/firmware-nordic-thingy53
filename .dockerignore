@@ -1,0 +1,4 @@
+build/
+modules/
+*.hex
+edge-impulse-sdk/
