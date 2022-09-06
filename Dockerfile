@@ -20,7 +20,7 @@ RUN if [ $(uname -m) = "x86_64" ]; then export ARCH=x86_64; else export ARCH=aar
     rm /opt/cmake/cmake-3.21.3-linux-$ARCH.sh
 
 # GCC ARM
-RUN if [ $(uname -m) == "x86_64" ]; then export ARCH=x86_64; else export ARCH=aarch64; fi && \
+RUN if [ $(uname -m) = "x86_64" ]; then export ARCH=x86_64; else export ARCH=aarch64; fi && \
     cd .. && \
     wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-$ARCH-linux.tar.bz2 && \
     tar xjf gcc-arm-none-eabi-9-2019-q4-major-$ARCH-linux.tar.bz2 && \

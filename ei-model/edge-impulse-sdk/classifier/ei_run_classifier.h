@@ -68,6 +68,9 @@ EiTrt* ei_trt_handle = NULL;
 extern "C" void infer(uint32_t* time, uint32_t* cycles);
 int8_t *processed_features;
 int8_t infer_result[EI_CLASSIFIER_LABEL_COUNT];
+
+#elif EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_DRPAI
+#include "edge-impulse-sdk/classifier/inferencing_engines/drpai.h"
 #else
 #error "Unknown inferencing engine"
 #endif
@@ -361,7 +364,7 @@ extern "C" EI_IMPULSE_ERROR run_inference(
             result->classification[i].value = tensorrt_output[i];
         }
     }
-#endif
+#endif // EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TFLITE
 
 #if EI_CLASSIFIER_HAS_ANOMALY == 1
 
@@ -411,7 +414,7 @@ extern "C" EI_IMPULSE_ERROR run_classifier(
     ei_impulse_result_t *result,
     bool debug = false)
 {
-#if EI_CLASSIFIER_TFLITE_INPUT_QUANTIZED == 1 && (EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TFLITE || EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TENSAIFLOW)
+#if (EI_CLASSIFIER_TFLITE_INPUT_QUANTIZED == 1 && (EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TFLITE || EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TENSAIFLOW)) || EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_DRPAI
 
     // Shortcut for quantized image models
     if (can_run_classifier_image_quantized() == EI_IMPULSE_OK) {
@@ -602,7 +605,7 @@ static void calc_cepstral_mean_and_var_normalization_spectrogram(ei_matrix *matr
  * Check if the current impulse could be used by 'run_classifier_image_quantized'
  */
 __attribute__((unused)) static EI_IMPULSE_ERROR can_run_classifier_image_quantized() {
-#if (EI_CLASSIFIER_INFERENCING_ENGINE != EI_CLASSIFIER_TFLITE) && (EI_CLASSIFIER_INFERENCING_ENGINE != EI_CLASSIFIER_TENSAIFLOW)
+#if (EI_CLASSIFIER_INFERENCING_ENGINE != EI_CLASSIFIER_TFLITE) && (EI_CLASSIFIER_INFERENCING_ENGINE != EI_CLASSIFIER_TENSAIFLOW) && (EI_CLASSIFIER_INFERENCING_ENGINE != EI_CLASSIFIER_DRPAI)
     return EI_IMPULSE_UNSUPPORTED_INFERENCING_ENGINE;
 #endif
 
@@ -610,7 +613,7 @@ __attribute__((unused)) static EI_IMPULSE_ERROR can_run_classifier_image_quantiz
     return EI_IMPULSE_ONLY_SUPPORTED_FOR_IMAGES;
 #endif
 
-    // Check if we have a quantized NN
+    // Check if we have a quantized NN Input layer (input is always quantized for DRP-AI)
 #if EI_CLASSIFIER_TFLITE_INPUT_QUANTIZED != 1
     return EI_IMPULSE_ONLY_SUPPORTED_FOR_IMAGES;
 #endif
@@ -645,7 +648,7 @@ extern "C" void post_process(int8_t *out_buf_0, int8_t *out_buf_1)
 
 #endif // #if EI_CLASSIFIER_TFLITE_INPUT_QUANTIZED == 1 && EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TENSAIFLOW
 
-#if EI_CLASSIFIER_TFLITE_INPUT_QUANTIZED == 1 && (EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TFLITE || EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TENSAIFLOW)
+#if EI_CLASSIFIER_TFLITE_INPUT_QUANTIZED == 1 && (EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TFLITE || EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TENSAIFLOW || EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_DRPAI)
 /**
  * Special function to run the classifier on images, only works on TFLite models (either interpreter or EON or for tensaiflow)
  * that allocates a lot less memory by quantizing in place. This only works if 'can_run_classifier_image_quantized'
@@ -663,7 +666,7 @@ extern "C" EI_IMPULSE_ERROR run_classifier_image_quantized(
 
     memset(result, 0, sizeof(ei_impulse_result_t));
 
-#if (EI_CLASSIFIER_INFERENCING_ENGINE != EI_CLASSIFIER_TENSAIFLOW)
+#if ((EI_CLASSIFIER_INFERENCING_ENGINE != EI_CLASSIFIER_TENSAIFLOW) && (EI_CLASSIFIER_INFERENCING_ENGINE != EI_CLASSIFIER_DRPAI))
 
 #if (EI_CLASSIFIER_INFERENCING_ENGINE != EI_CLASSIFIER_TFLITE)
     return EI_IMPULSE_UNSUPPORTED_INFERENCING_ENGINE;
@@ -673,7 +676,7 @@ extern "C" EI_IMPULSE_ERROR run_classifier_image_quantized(
 
 #endif // EI_CLASSIFIER_INFERENCING_ENGINE != EI_CLASSIFIER_TFLITE
 
-#else
+#elif (EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TENSAIFLOW)
 
     uint64_t ctx_start_us;
     uint64_t dsp_start_us = ei_read_timer_us();
@@ -731,10 +734,110 @@ extern "C" EI_IMPULSE_ERROR run_classifier_image_quantized(
     }
 
     return EI_IMPULSE_OK;
-#endif // (EI_CLASSIFIER_INFERENCING_ENGINE != EI_CLASSIFIER_TENSAIFLOW)
+
+#elif (EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_DRPAI)
+    static bool first_run = true;
+    uint64_t ctx_start_us;
+    uint64_t dsp_start_us = ei_read_timer_us();
+
+    if (first_run) {
+        // map memory regions to the DRP-AI UDMA. This is required for passing data
+        // to and from DRP-AI
+        int t = drpai_init_mem();
+        if (t != 0) {
+            return EI_IMPULSE_DRPAI_INIT_FAILED;
+        }
+
+        EI_IMPULSE_ERROR ret = drpai_init_classifier(debug);
+        if (ret != EI_IMPULSE_OK) {
+            drpai_close(debug);
+            return EI_IMPULSE_DRPAI_INIT_FAILED;
+        }
+    }
+
+    if (debug) {
+        ei_printf("starting DSP...\n");
+    }
+
+    // Creates a features matrix mapped to the DRP-AI UDMA input region
+    ei::matrix_i8_t features_matrix(1, proc[DRPAI_INDEX_INPUT].size, (int8_t *)drpai_input_buf);
+
+    // Grabs the raw image buffer from the signal, DRP-AI will automatically
+    // extract features
+    int ret = extract_drpai_features_quantized(
+        signal,
+        &features_matrix,
+        ei_dsp_blocks[0].config,
+        EI_CLASSIFIER_FREQUENCY);
+    if (ret != EIDSP_OK) {
+        ei_printf("ERR: Failed to run DSP process (%d)\n", ret);
+        return EI_IMPULSE_DSP_ERROR;
+    }
+
+    if (ei_run_impulse_check_canceled() == EI_IMPULSE_CANCELED) {
+        return EI_IMPULSE_CANCELED;
+    }
+
+    result->timing.dsp_us = ei_read_timer_us() - dsp_start_us;
+    result->timing.dsp = (int)(result->timing.dsp_us / 1000);
+
+    //if (debug) {
+    //    ei_printf("DSP was assigned address: 0x%lx\n", drpai_input_buf);
+    //    ei_printf("Features (%d ms.): ", result->timing.dsp);
+    //    for (size_t ix = 0; ix < EI_CLASSIFIER_NN_INPUT_FRAME_SIZE; ix++) {
+    //        ei_printf("0x%hhx, ", drpai_input_buf[ix]);
+    //    }
+    //    ei_printf("\n");
+    //}
+
+    ctx_start_us = ei_read_timer_us();
+
+    // Run DRP-AI inference, a static buffer is used to store the raw output
+    // results
+    ret = drpai_run_classifier_image_quantized(debug);
+
+    // close driver to reset memory, file pointer
+    if (ret != EI_IMPULSE_OK) {
+        drpai_close(debug);
+        first_run = true;
+    }
+    else {
+        // drpai_reset();
+        first_run = false;
+    }
+
+#if EI_CLASSIFIER_OBJECT_DETECTION_CONSTRAINED == 1
+    if (debug) {
+        ei_printf("DEBUG: raw drpai output");
+        ei_printf("\n[");
+        for (uint32_t i = 0; i < 12 * 12 * 2; i++) {
+            ei_printf_float(drpai_output_buf[i]);
+            ei_printf(" ");
+        }
+        ei_printf("]\n");
+    }
+
+    fill_result_struct_f32(
+        result,
+        drpai_output_buf,
+        EI_CLASSIFIER_INPUT_WIDTH / 8,
+        EI_CLASSIFIER_INPUT_HEIGHT / 8);
+#elif EI_CLASSIFIER_OBJECT_DETECTION == 1
+    if (debug) {
+        ei_printf("ERR: Output tensor formatting not yet implemented for DRP-AI");
+    }
+    return EI_IMPULSE_UNSUPPORTED_INFERENCING_ENGINE;
+#else
+    fill_result_struct_f32(result, drpai_output_buf, debug);
+#endif
+
+    result->timing.classification_us = ei_read_timer_us() - ctx_start_us;
+    result->timing.classification = (int)(result->timing.classification_us / 1000);
+    return EI_IMPULSE_OK;
+#endif // (EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_DRPAI)
 }
 
-#endif // #if EI_CLASSIFIER_TFLITE_INPUT_QUANTIZED == 1 && (EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TFLITE || EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TENSAIFLOW)
+#endif // #if EI_CLASSIFIER_TFLITE_INPUT_QUANTIZED == 1 && (EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TFLITE || EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_TENSAIFLOW || EI_CLASSIFIER_INFERENCING_ENGINE == EI_CLASSIFIER_DRPAI)
 
 #if EIDSP_SIGNAL_C_FN_POINTER == 0
 

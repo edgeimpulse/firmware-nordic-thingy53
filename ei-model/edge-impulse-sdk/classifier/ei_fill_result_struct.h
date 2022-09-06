@@ -108,6 +108,9 @@ __attribute__((unused)) static void ei_handle_cube(std::vector<ei_classifier_cub
 
 __attribute__((unused)) static void fill_result_struct_from_cubes(ei_impulse_result_t *result, std::vector<ei_classifier_cube_t*> *cubes, int out_width_factor) {
     std::vector<ei_classifier_cube_t*> bbs;
+    static std::vector<ei_impulse_result_bounding_box_t> results;
+    int added_boxes_count = 0;
+    results.clear();
     for (auto sc : *cubes) {
         bool has_overlapping = false;
 
@@ -128,29 +131,39 @@ __attribute__((unused)) static void fill_result_struct_from_cubes(ei_impulse_res
             }
         }
 
-        if (!has_overlapping) {
-            bbs.push_back(sc);
-        }
-    }
-
-    for (size_t ix = 0; ix < EI_CLASSIFIER_OBJECT_DETECTION_COUNT; ix++) {
-        if (ix >= bbs.size()) {
-            result->bounding_boxes[ix].value = 0.0f;
+        if (has_overlapping) {
             continue;
         }
 
-        auto cube = bbs.at(ix);
-        result->bounding_boxes[ix].label = cube->label;
-        result->bounding_boxes[ix].x = cube->x * out_width_factor;
-        result->bounding_boxes[ix].y = cube->y * out_width_factor;
-        result->bounding_boxes[ix].width = cube->width * out_width_factor;
-        result->bounding_boxes[ix].height = cube->height * out_width_factor;
-        result->bounding_boxes[ix].value = cube->confidence;
+        bbs.push_back(sc);
+
+        ei_impulse_result_bounding_box_t tmp = {
+            .label = sc->label,
+            .x = (uint32_t)(sc->x * out_width_factor),
+            .y = (uint32_t)(sc->y * out_width_factor),
+            .width = (uint32_t)(sc->width * out_width_factor),
+            .height = (uint32_t)(sc->height * out_width_factor),
+            .value = sc->confidence
+        };
+
+        results.push_back(tmp);
+        added_boxes_count++;
+    }
+
+    // if we didn't detect min required objects, fill the rest with fixed value
+    if(added_boxes_count < EI_CLASSIFIER_OBJECT_DETECTION_COUNT) {
+        results.resize(EI_CLASSIFIER_OBJECT_DETECTION_COUNT);
+        for (size_t ix = added_boxes_count; ix < EI_CLASSIFIER_OBJECT_DETECTION_COUNT; ix++) {
+            results[ix].value = 0.0f;
+        }
     }
 
     for (auto c : *cubes) {
         delete c;
     }
+
+    result->bounding_boxes = results.data();
+    result->bounding_boxes_count = results.size();
 }
 
 __attribute__((unused)) static void fill_result_struct_f32(ei_impulse_result_t *result, float *data, int out_width, int out_height) {
@@ -203,6 +216,9 @@ __attribute__((unused)) static void fill_result_struct_i8(ei_impulse_result_t *r
  * (we don't support quantized here a.t.m.)
  */
 __attribute__((unused)) static void fill_result_struct_f32(ei_impulse_result_t *result, float *data, float *scores, float *labels, bool debug) {
+    static std::vector<ei_impulse_result_bounding_box_t> results;
+    results.clear();
+    results.resize(EI_CLASSIFIER_OBJECT_DETECTION_COUNT);
     for (size_t ix = 0; ix < EI_CLASSIFIER_OBJECT_DETECTION_COUNT; ix++) {
 
         float score = scores[ix];
@@ -230,17 +246,19 @@ __attribute__((unused)) static void fill_result_struct_f32(ei_impulse_result_t *
                     ei_classifier_inferencing_categories[(uint32_t)label], label, score, xstart, ystart, xend, yend);
             }
 
-            result->bounding_boxes[ix].label = ei_classifier_inferencing_categories[(uint32_t)label];
-            result->bounding_boxes[ix].x = static_cast<uint32_t>(xstart * static_cast<float>(EI_CLASSIFIER_INPUT_WIDTH));
-            result->bounding_boxes[ix].y = static_cast<uint32_t>(ystart * static_cast<float>(EI_CLASSIFIER_INPUT_HEIGHT));
-            result->bounding_boxes[ix].width = static_cast<uint32_t>((xend - xstart) * static_cast<float>(EI_CLASSIFIER_INPUT_WIDTH));
-            result->bounding_boxes[ix].height = static_cast<uint32_t>((yend - ystart) * static_cast<float>(EI_CLASSIFIER_INPUT_HEIGHT));
-            result->bounding_boxes[ix].value = score;
+            results[ix].label = ei_classifier_inferencing_categories[(uint32_t)label];
+            results[ix].x = static_cast<uint32_t>(xstart * static_cast<float>(EI_CLASSIFIER_INPUT_WIDTH));
+            results[ix].y = static_cast<uint32_t>(ystart * static_cast<float>(EI_CLASSIFIER_INPUT_HEIGHT));
+            results[ix].width = static_cast<uint32_t>((xend - xstart) * static_cast<float>(EI_CLASSIFIER_INPUT_WIDTH));
+            results[ix].height = static_cast<uint32_t>((yend - ystart) * static_cast<float>(EI_CLASSIFIER_INPUT_HEIGHT));
+            results[ix].value = score;
         }
         else {
-            result->bounding_boxes[ix].value = 0.0f;
+            results[ix].value = 0.0f;
         }
     }
+    result->bounding_boxes = results.data();
+    result->bounding_boxes_count = results.size();
 }
 
 #else

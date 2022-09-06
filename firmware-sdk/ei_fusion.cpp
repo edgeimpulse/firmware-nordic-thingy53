@@ -103,6 +103,8 @@ bool ei_connect_fusion_list(const char *input_list, ei_fusion_list_format format
 
     num_fusions = 0;
     num_fusion_axis = 0;
+    fusion_sensors.clear();
+
     for (unsigned int i = 0; i < fusable_sensor_list.size(); i++) {
         fusion_sensors.push_back(nullptr);
     } // clear fusion list
@@ -307,7 +309,8 @@ void ei_built_sensor_fusion_list(void)
         ei_printf("Max sample length: %us, ", it->max_sample_length);
         ei_printf("Frequencies: [");
         for (auto freq = it->frequencies.begin(); freq != it->frequencies.end();) {
-            ei_printf("%.2fHz", *freq);
+            ei_printf_float(*freq);
+            ei_printf("Hz");
             freq++;
             if (freq != it->frequencies.end()) {
                 ei_printf(", ");

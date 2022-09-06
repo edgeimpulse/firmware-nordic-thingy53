@@ -21,7 +21,7 @@
  */
 
 #include "model-parameters/model_metadata.h"
-#if defined(EI_CLASSIFIER_SENSOR) && EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_FUSION
+#if defined(EI_CLASSIFIER_SENSOR) && ((EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_FUSION) || (EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_ACCELEROMETER))
 #include "edge-impulse-sdk/classifier/ei_run_classifier.h"
 #include "edge-impulse-sdk/dsp/numpy.hpp"
 #include "firmware-sdk/ei_fusion.h"
@@ -260,6 +260,7 @@ void ei_stop_impulse(void)
         dev->set_state(eiStateFinished);
         /* reset samples buffer */
         samples_wr_index = 0;
+        run_classifier_deinit();
     }
 }
 

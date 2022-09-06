@@ -56,19 +56,41 @@ static inline inference_state_t set_thread_state(inference_state_t new_state)
     return state;
 }
 
+static void timing_and_classification(ei_impulse_result_t* result)
+{
+    ei_printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
+        result->timing.dsp, result->timing.classification, result->timing.anomaly);
+    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        ei_printf("    %s: \t%f\r\n", result->classification[ix].label, result->classification[ix].value);
+    }
+#if EI_CLASSIFIER_HAS_ANOMALY == 1
+    ei_printf("    anomaly score: %f\r\n", result->anomaly);
+#endif
+}
+
 static void display_results(ei_impulse_result_t* result)
 {
     char *string = NULL;
 
     if(dev->get_serial_channel() == UART) {
-        ei_printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-            result->timing.dsp, result->timing.classification, result->timing.anomaly);
-        for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {            
-            ei_printf("    %s: \t%f\r\n", result->classification[ix].label, result->classification[ix].value);
+        if(continuous_mode == true) {
+            if(result->label_detected >= 0) {
+                ei_printf("LABEL DETECTED : %s\r\n", result->classification[result->label_detected].label);
+                timing_and_classification(result);
+            }
+            else {
+                const char spinner[] = {'/', '-', '\\', '|'};
+                static char spin = 0;
+                ei_printf("Running inference %c\r", spinner[spin]);
+
+                if(++spin >= sizeof(spinner)) {
+                    spin = 0;
+                }
+            }            
         }
-#if EI_CLASSIFIER_HAS_ANOMALY == 1
-        ei_printf("    anomaly score: %f\r\n", result->anomaly);
-#endif
+        else {
+            timing_and_classification(result);
+        }
     }
     else {
         cJSON *response = cJSON_CreateObject();
@@ -78,7 +100,7 @@ static void display_results(ei_impulse_result_t* result)
 
         results = cJSON_AddArrayToObject(response, "classification");
 
-        for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {     
+        for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
             cJSON *res = cJSON_CreateObject();
             cJSON_AddStringToObject(res, "label", result->classification[ix].label);
             cJSON_AddNumberToObject(res, "value", result->classification[ix].value);
@@ -115,6 +137,9 @@ void ei_inference_thread(void* param1, void* param2, void* param3)
                 if(set_thread_state(INFERENCE_SAMPLING) == INFERENCE_STOPPED) {
                     // if someone stopped inference during delay, go to thread loop iteration
                     continue;
+                }
+                if(dev->get_serial_channel() == UART) {
+                    ei_printf("Recording\n");
                 }
                 ei_microphone_inference_reset_buffers();
                 dev->set_state(eiStateSampling);
@@ -222,6 +247,7 @@ void ei_stop_impulse(void)
         dev->set_state(eiStateFinished);
         /* reset samples buffer */
         samples_wr_index = 0;
+        run_classifier_deinit();
     }
 }
 
