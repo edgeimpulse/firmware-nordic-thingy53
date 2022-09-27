@@ -26,28 +26,29 @@
 #include "model_metadata.h"
 #include "edge-impulse-sdk/classifier/ei_model_types.h"
 
-const char* ei_classifier_inferencing_categories[] = { "idle", "snake", "updown", "wave" };
+const char* ei_classifier_inferencing_categories[] = { "greenlight", "ok_edge", "redlight", "unknown" };
 
-uint8_t ei_dsp_config_17_axes[] = { 0, 1, 2 };
-const uint32_t ei_dsp_config_17_axes_size = 3;
-ei_dsp_config_spectral_analysis_t ei_dsp_config_17 = {
+uint8_t ei_dsp_config_28_axes[] = { 0 };
+const uint32_t ei_dsp_config_28_axes_size = 1;
+ei_dsp_config_mfe_t ei_dsp_config_28 = {
+    3,
     1,
-    3,
-    1.0f,
-    "low",
-    3.0f,
-    6,
-    128,
-    3,
-    0.1f,
-    "0.1, 0.5, 1.0, 2.0, 5.0"
+    0.02f,
+    0.01f,
+    40,
+    256,
+    300,
+    0,
+    101,
+    -52
 };
 const ei_model_performance_calibration_t ei_calibration = {
+    true, /* Has configured performance calibration */
     1, /* integer version number */
-    (int32_t)(EI_CLASSIFIER_RAW_SAMPLE_COUNT / ((EI_CLASSIFIER_FREQUENCY > 0) ? EI_CLASSIFIER_FREQUENCY : 1)) * 1000, /* Model window */
-    0.8f, /* Default threshold */
-    (int32_t)(EI_CLASSIFIER_RAW_SAMPLE_COUNT / ((EI_CLASSIFIER_FREQUENCY > 0) ? EI_CLASSIFIER_FREQUENCY : 1)) * 500, /* Half of model window */
-    0   /* Don't use flags */
+    397, /* average duration window ms */
+    0.6055661585922655, /* detection threshold */
+    1318,  /* suppression ms */
+    0x7, /* suppression flags */
 };
 
 #endif // _EI_CLASSIFIER_MODEL_METADATA_H_

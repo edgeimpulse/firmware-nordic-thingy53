@@ -148,6 +148,8 @@ extern "C" EI_IMPULSE_ERROR run_classifier_continuous(signal_t *signal, ei_impul
         return EI_IMPULSE_ALLOC_FAILED;
     }
 
+    memset(result, 0, sizeof(ei_impulse_result_t));
+
     EI_IMPULSE_ERROR ei_impulse_error = EI_IMPULSE_OK;
 
     uint64_t dsp_start_us = ei_read_timer_us();
@@ -257,10 +259,32 @@ extern "C" EI_IMPULSE_ERROR run_classifier_continuous(signal_t *signal, ei_impul
 
 #if (EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_MICROPHONE)
         if((void *)avg_scores  != NULL && enable_maf == true) {
-            result->label_detected = avg_scores->trigger(result->classification);
+            int label_detected = avg_scores->trigger(result->classification);
+
+            // Q: @Arjan, if we run the moving-average filter, are the results changed
+            // as they were before?
+            if (avg_scores->should_boost()) {
+                for (int i = 0; i < EI_CLASSIFIER_LABEL_COUNT; i++) {
+                    if (i == label_detected) {
+                        result->classification[i].value = 1.0f;
+                    }
+                    else {
+                        result->classification[i].value = 0.0f;
+                    }
+                }
+            }
         }
 #endif
     }
+    else {
+#if !EI_CLASSIFIER_OBJECT_DETECTION
+        for (int i = 0; i < EI_CLASSIFIER_LABEL_COUNT; i++) {
+            // set label correctly in the result struct if we have no results (otherwise is nullptr)
+            result->classification[i].label = ei_classifier_inferencing_categories[(uint32_t)i];
+        }
+#endif
+    }
+
     return ei_impulse_error;
 }
 

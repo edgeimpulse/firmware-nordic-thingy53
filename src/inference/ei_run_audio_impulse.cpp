@@ -29,6 +29,7 @@
 #include "ble/ble_nus.h"
 #include "cJSON.h"
 #include <logging/log.h>
+#include <dk_buttons_and_leds.h>
 LOG_MODULE_REGISTER(run_impulse);
 
 typedef enum {
@@ -41,7 +42,7 @@ typedef enum {
 static int print_results;
 static uint16_t samples_per_inference;
 static inference_state_t state = INFERENCE_STOPPED;
-static bool continuous_mode = false;
+static bool continuous_mode = true;
 static bool debug_mode = false;
 static float samples_circ_buff[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE];
 static int samples_wr_index = 0;
@@ -74,19 +75,13 @@ static void display_results(ei_impulse_result_t* result)
 
     if(dev->get_serial_channel() == UART) {
         if(continuous_mode == true) {
-            if(result->label_detected >= 0) {
-                ei_printf("LABEL DETECTED : %s\r\n", result->classification[result->label_detected].label);
-                timing_and_classification(result);
-            }
-            else {
-                const char spinner[] = {'/', '-', '\\', '|'};
-                static char spin = 0;
-                ei_printf("Running inference %c\r", spinner[spin]);
+            const char spinner[] = {'/', '-', '\\', '|'};
+            static char spin = 0;
+            ei_printf("Running inference %c\r", spinner[spin]);
 
-                if(++spin >= sizeof(spinner)) {
-                    spin = 0;
-                }
-            }            
+            if(++spin >= sizeof(spinner)) {
+                spin = 0;
+            }      
         }
         else {
             timing_and_classification(result);
@@ -121,6 +116,42 @@ static void display_results(ei_impulse_result_t* result)
 
         // cJSON_FreeString(string);
         k_free(string);
+    }
+}
+
+bool ok_edge_receieved = false;
+
+static void display_leds(ei_impulse_result_t* result)
+{
+    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+        if (result->classification[ix].label == "ok_edge") {
+            if (result->classification[ix].value > 0.97) {
+                ei_printf("    %s: \t%f\r\n", result->classification[ix].label, result->classification[ix].value);
+                ok_edge_receieved = true;
+            }
+        } else if (result->classification[ix].label == "greenlight") {
+            if (result->classification[ix].value > 0.97) {
+                ei_printf("    %s: \t%f\r\n", result->classification[ix].label, result->classification[ix].value);
+                
+                if (ok_edge_receieved == true) {
+                    dk_set_led(LED_RED, 0);
+                    dk_set_led(LED_GREEN, 1);
+                    dk_set_led(LED_BLUE, 0);
+                    ok_edge_receieved = false;
+                }
+            }
+        } else if (result->classification[ix].label == "redlight") {
+            if (result->classification[ix].value > 0.97) {
+                ei_printf("    %s: \t%f\r\n", result->classification[ix].label, result->classification[ix].value);
+
+                if (ok_edge_receieved == true) {
+                    dk_set_led(LED_RED, 1);
+                    dk_set_led(LED_GREEN, 0);
+                    dk_set_led(LED_BLUE, 0);
+                    ok_edge_receieved = false;
+                }
+            }
+        }
     }
 }
 
@@ -179,10 +210,7 @@ void ei_inference_thread(void* param1, void* param2, void* param3)
         }
 
         if(continuous_mode == true) {
-            if(++print_results >= (EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW >> 1)) {
-                display_results(&result);
-                print_results = 0;
-            }
+            display_leds(&result);
         }
         else {
             display_results(&result);
@@ -200,7 +228,7 @@ void ei_inference_thread(void* param1, void* param2, void* param3)
 
 void ei_start_impulse(bool continuous, bool debug, bool use_max_uart_speed)
 {
-    continuous_mode = continuous;
+    // continuous_mode = continuous;
     debug_mode = debug;
 
     // summary of inferencing settings (from model_metadata.h)

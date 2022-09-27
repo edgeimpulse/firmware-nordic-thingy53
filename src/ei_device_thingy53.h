@@ -28,6 +28,10 @@
 #include "firmware-sdk/ei_device_memory.h"
 #include <cstdint>
 
+#define LED_RED     DK_LED1
+#define LED_GREEN   DK_LED2
+#define LED_BLUE    DK_LED3
+
 typedef enum {
     UART = 0,
     BLE

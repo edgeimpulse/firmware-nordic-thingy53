@@ -222,7 +222,7 @@ public:
             EIDSP_ERR(ret);
         }
 
-        if (stack_frame_info.frame_ixs->size() != out_features->rows) {
+        if (stack_frame_info.frame_ixs.size() != out_features->rows) {
             EIDSP_ERR(EIDSP_MATRIX_SIZE_MISMATCH);
         }
 
@@ -230,7 +230,7 @@ public:
             EIDSP_ERR(EIDSP_MATRIX_SIZE_MISMATCH);
         }
 
-        if (stack_frame_info.frame_ixs->size() != out_energies->rows || out_energies->cols != 1) {
+        if (stack_frame_info.frame_ixs.size() != out_energies->rows || out_energies->cols != 1) {
             EIDSP_ERR(EIDSP_MATRIX_SIZE_MISMATCH);
         }
 
@@ -256,7 +256,7 @@ public:
         if (ret != 0) {
             EIDSP_ERR(ret);
         }
-        for (size_t ix = 0; ix < stack_frame_info.frame_ixs->size(); ix++) {
+        for (size_t ix = 0; ix < stack_frame_info.frame_ixs.size(); ix++) {
             size_t power_spectrum_frame_size = (fft_length / 2 + 1);
 
             EI_DSP_MATRIX(power_spectrum_frame, 1, power_spectrum_frame_size);
@@ -268,7 +268,7 @@ public:
             EI_DSP_MATRIX(signal_frame, 1, stack_frame_info.frame_length);
 
             // don't read outside of the audio buffer... we'll automatically zero pad then
-            size_t signal_offset = stack_frame_info.frame_ixs->at(ix);
+            size_t signal_offset = stack_frame_info.frame_ixs.at(ix);
             size_t signal_length = stack_frame_info.frame_length;
             if (signal_offset + signal_length > stack_frame_info.signal->total_length) {
                 signal_length = signal_length -
@@ -358,7 +358,7 @@ public:
             EIDSP_ERR(ret);
         }
 
-        if (stack_frame_info.frame_ixs->size() != out_features->rows) {
+        if (stack_frame_info.frame_ixs.size() != out_features->rows) {
             EIDSP_ERR(EIDSP_MATRIX_SIZE_MISMATCH);
         }
 
@@ -372,12 +372,12 @@ public:
             *(out_features->buffer + i) = 0;
         }
 
-        for (size_t ix = 0; ix < stack_frame_info.frame_ixs->size(); ix++) {
+        for (size_t ix = 0; ix < stack_frame_info.frame_ixs.size(); ix++) {
             // get signal data from the audio file
             EI_DSP_MATRIX(signal_frame, 1, stack_frame_info.frame_length);
 
             // don't read outside of the audio buffer... we'll automatically zero pad then
-            size_t signal_offset = stack_frame_info.frame_ixs->at(ix);
+            size_t signal_offset = stack_frame_info.frame_ixs.at(ix);
             size_t signal_length = stack_frame_info.frame_length;
             if (signal_offset + signal_length > stack_frame_info.signal->total_length) {
                 signal_length = signal_length -

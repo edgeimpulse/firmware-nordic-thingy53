@@ -31,15 +31,8 @@ namespace speechpy {
 // one stack frame returned by stack_frames
 typedef struct ei_stack_frames_info {
     signal_t *signal;
-    std::vector<uint32_t> *frame_ixs;
+    std::vector<uint32_t> frame_ixs;
     int frame_length;
-
-    // start_ixs is owned by us
-    ~ei_stack_frames_info() {
-        if (frame_ixs) {
-            delete frame_ixs;
-        }
-    }
 } stack_frames_info_t;
 
 namespace processing {
@@ -326,18 +319,16 @@ namespace processing {
             info->signal->total_length = static_cast<size_t>(len_sig);
         }
 
-        // alloc the vector on the heap, will be owned by the info struct
-        std::vector<uint32_t> *frame_indices = new std::vector<uint32_t>();
-
+        info->frame_ixs.clear();
+        
         int frame_count = 0;
 
         for (size_t ix = 0; ix < static_cast<uint32_t>(len_sig); ix += static_cast<size_t>(frame_stride)) {
             if (++frame_count > numframes) break;
 
-            frame_indices->push_back(ix);
+            info->frame_ixs.push_back(ix);
         }
 
-        info->frame_ixs = frame_indices;
         info->frame_length = frame_sample_length;
 
         return EIDSP_OK;

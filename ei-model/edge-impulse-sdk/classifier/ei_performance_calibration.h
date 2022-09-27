@@ -48,8 +48,11 @@ public:
             return;
         }
 
+        this->_score_array = nullptr;
+        this->_running_sum = nullptr;
         this->_detection_threshold = config->detection_threshold;
         this->_suppression_flags = config->suppression_flags;
+        this->_should_boost = config->is_configured;
         this->_n_labels = n_labels;
 
         /* Determine sample length in ms */
@@ -111,6 +114,11 @@ public:
         if (this->_running_sum) {
             ei_free((void *)this->_running_sum);
         }
+    }
+
+    bool should_boost()
+    {
+        return this->_should_boost;
     }
 
     int32_t trigger(ei_impulse_result_classification_t *scores)
@@ -187,6 +195,7 @@ public:
 private:
     uint32_t _average_window_duration_samples;
     float _detection_threshold;
+    bool _should_boost;
     uint32_t _suppression_samples;
     uint32_t _suppression_count;
     uint32_t _suppression_flags;

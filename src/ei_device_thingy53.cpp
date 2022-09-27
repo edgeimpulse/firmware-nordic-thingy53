@@ -34,9 +34,6 @@
 
 LOG_MODULE_REGISTER(ei_device_thingy53);
 
-#define LED_RED     DK_LED1
-#define LED_GREEN   DK_LED2
-#define LED_BLUE    DK_LED3
 
 using namespace std;
 
@@ -63,7 +60,7 @@ static void led_work_handler(struct k_work *work)
             dk_set_led(LED_RED, blink++ % 2);
             break;
         case eiStateSampling:
-            dk_set_led(LED_BLUE, blink++ % 2);
+            // dk_set_led(LED_BLUE, blink++ % 2);
             break;
         case eiStateUploading:
             dk_set_led(LED_GREEN, blink++ % 2);

@@ -59,7 +59,6 @@ typedef struct {
 #endif
     float anomaly;
     ei_impulse_result_timing_t timing;
-    int32_t label_detected;
 } ei_impulse_result_t;
 
 #endif // _EDGE_IMPULSE_RUN_CLASSIFIER_TYPES_H_

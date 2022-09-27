@@ -36,6 +36,7 @@ typedef struct {
 
 typedef struct {
     uint16_t implementation_version;
+    bool is_configured;
     uint32_t average_window_duration_ms;
     float detection_threshold;
     uint32_t suppression_ms;

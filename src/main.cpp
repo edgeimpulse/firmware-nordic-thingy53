@@ -91,6 +91,7 @@ int main(void)
     dev->init_device_id();
 
     dev->set_state(eiStateFinished);
+    ei_start_impulse(false, false);
 
     ei_printf("Hello from Edge Impulse\r\n"
               "Compiled on %s %s\r\n", __DATE__, __TIME__);
