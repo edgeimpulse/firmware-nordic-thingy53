@@ -73,24 +73,7 @@ static void display_results(ei_impulse_result_t* result)
     char *string = NULL;
 
     if(dev->get_serial_channel() == UART) {
-        if(continuous_mode == true) {
-            if(result->label_detected >= 0) {
-                ei_printf("LABEL DETECTED : %s\r\n", result->classification[result->label_detected].label);
-                timing_and_classification(result);
-            }
-            else {
-                const char spinner[] = {'/', '-', '\\', '|'};
-                static char spin = 0;
-                ei_printf("Running inference %c\r", spinner[spin]);
-
-                if(++spin >= sizeof(spinner)) {
-                    spin = 0;
-                }
-            }            
-        }
-        else {
-            timing_and_classification(result);
-        }
+        timing_and_classification(result);
     }
     else {
         cJSON *response = cJSON_CreateObject();
@@ -233,7 +216,7 @@ void ei_start_impulse(bool continuous, bool debug, bool use_max_uart_speed)
     }
 
     if (ei_microphone_inference_start(continuous_mode ? EI_CLASSIFIER_SLICE_SIZE : EI_CLASSIFIER_RAW_SAMPLE_COUNT, EI_CLASSIFIER_INTERVAL_MS) == false) {
-        ei_printf("ERR: Failed to setup audio sampling");
+        ei_printf("ERR: Could not allocate audio buffer (size %d), this could be due to the window length of your model\r\n", EI_CLASSIFIER_RAW_SAMPLE_COUNT);
         state = INFERENCE_STOPPED;
         return;
     }

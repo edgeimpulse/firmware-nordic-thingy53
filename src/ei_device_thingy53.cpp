@@ -31,6 +31,7 @@
 #include <bluetooth/bluetooth.h>
 #include <dk_buttons_and_leds.h>
 #include <logging/log.h>
+#include <drivers/uart.h>
 
 LOG_MODULE_REGISTER(ei_device_thingy53);
 
@@ -288,4 +289,23 @@ bool EiDeviceThingy53::get_sensor_list(const ei_device_sensor_t **sensor_list, s
 uint32_t EiDeviceThingy53::get_data_output_baudrate(void)
 {
     return 921600;
+}
+
+/**
+ * @brief Overrides ei_classifier_porting version
+ * Uses direct uart out to avoid printing of additional \r\r
+ * @param format
+ * @param ...
+ */
+void ei_printf(const char *format, ...)
+{
+    extern const struct device *uart;
+    static char print_buf[256] = { 0 };
+
+    va_list args;
+    va_start(args, format);
+    int r = vsnprintf(print_buf, sizeof(print_buf), format, args);
+    va_end(args);
+
+    uart_fifo_fill(uart, (const uint8_t *)print_buf, r);
 }

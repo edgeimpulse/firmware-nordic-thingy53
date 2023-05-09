@@ -128,7 +128,7 @@ Use [nRF Connect for Android](https://play.google.com/store/apps/details?id=no.n
 
 ## Creating a production firmware
 
-`MCUboot` and `b0n` bootloaders in NCS >1.7.0 have a bug resulting in a network core failed after full OTA update. Therefore (up to NCS 1.9.1) the full firmware has to be made as a mix of components from NCS 1.7.0 and 1.9.1
+`MCUboot` and `b0n` bootloaders in NCS >1.7.0 have a bug resulting in a network core faild after full OTA update. Therefore (up to NCS 1.9.1) the full firmware has to be made as a mix of components from NCS 1.7.0 and 1.9.1
 
 1. Get NCS 1.7.0 (see instruction above) and build the following example
 

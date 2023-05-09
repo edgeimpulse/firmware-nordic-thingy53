@@ -37,7 +37,7 @@
 #define LOG_MODULE_NAME main
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
-static const struct device *uart;
+const struct device *uart;
 
 void ei_putchar(char c)
 {
