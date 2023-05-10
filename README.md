@@ -1,6 +1,6 @@
 # Thingy:53 firmware
 
-[Edge Impulse](https://www.edgeimpulse.com) enables developers to create the next generation of intelligent device solutions with embedded Machine Learning. This repository contains the Edge Impulse firmware for the Nordic Semiconductor Thingy:53 development board that includes many different sensors. This firmware supports all Edge Impulse features, including ingestion, remote management, and inferencing. Direct communication with the device is performed over a mobile application, but the user can execute all functions via AT command over a USB interface. 
+[Edge Impulse](https://www.edgeimpulse.com) enables developers to create the next generation of intelligent device solutions with embedded Machine Learning. This repository contains the Edge Impulse firmware for the Nordic Semiconductor Thingy:53 development board that includes a subset of the available sensors, for all of the currently supported sensors see [src/sensors](https://github.com/edgeimpulse/firmware-nordic-thingy53/tree/main/src/sensors). This firmware supports all Edge Impulse features, including ingestion, remote management, and inferencing. Direct communication with the device is performed over a mobile application, but the user can execute all functions via AT command over a USB interface. 
 
 ## Requirements
 
