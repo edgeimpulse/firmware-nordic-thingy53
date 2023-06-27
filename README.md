@@ -23,7 +23,7 @@ Or you can build this application with Docker (see below).
 1. Clone this repository:
 
     ```
-    $ git clone https://github.com/edgeimpulse/firmware-nordic-thingy53-internal
+    $ git clone https://github.com/edgeimpulse/firmware-nordic-thingy53
     ```
 
 2. Build the application:
@@ -39,7 +39,7 @@ Or you can build this application with Docker (see below).
 1. Clone this repository:
 
     ```
-    $ git clone https://github.com/edgeimpulse/firmware-nordic-thingy53-internal
+    $ git clone https://github.com/edgeimpulse/firmware-nordic-thingy53
     ```
 
 1. Build the Docker container:
