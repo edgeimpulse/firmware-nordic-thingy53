@@ -27,11 +27,11 @@
 #include "firmware-sdk/ei_device_memory.h"
 #include "sensors/ei_microphone.h"
 #include "sensors/ei_inertial_sensor.h"
-#include <bluetooth/addr.h>
-#include <bluetooth/bluetooth.h>
+#include <zephyr/bluetooth/addr.h>
+#include <zephyr/bluetooth/bluetooth.h>
 #include <dk_buttons_and_leds.h>
-#include <logging/log.h>
-#include <drivers/uart.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/drivers/uart.h>
 
 LOG_MODULE_REGISTER(ei_device_thingy53);
 
@@ -205,7 +205,7 @@ void EiDeviceThingy53::init_device_id(void)
         addr.a.val[5], addr.a.val[4], addr.a.val[3],
         addr.a.val[2], addr.a.val[1], addr.a.val[0]);
 
-    LOG_INF("Setting ID = %s", log_strdup(temp));
+    LOG_INF("Setting ID = %s", temp);
 
     device_id = string(temp);
     mac_address = string(temp);

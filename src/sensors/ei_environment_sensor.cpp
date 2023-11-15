@@ -25,8 +25,8 @@
 #include "bme68x/bme68x.h"
 #include "bme68x/bme68x_port.h"
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
-#include <zephyr.h>
-#include <logging/log.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 #include <cstdint>
 
 #define LOG_MODULE_NAME ei_environment

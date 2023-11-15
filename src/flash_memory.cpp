@@ -1,9 +1,31 @@
+/* Edge Impulse ingestion SDK
+ * Copyright (c) 2023 EdgeImpulse Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "flash_memory.h"
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
-#include <drivers/flash.h>
-#include <logging/log.h>
-#include <storage/flash_map.h>
-#include <zephyr.h>
+#include <zephyr/drivers/flash.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/storage/flash_map.h>
+#include <zephyr/kernel.h>
 
 LOG_MODULE_REGISTER(ei_flash, LOG_LEVEL_DBG);
 
@@ -52,18 +74,25 @@ uint32_t EiFlashMemory::erase_data(uint32_t address, uint32_t num_bytes)
     // calculate address offset from block alignment
     uint16_t temp = address & (block_size - 1);
 
+    LOG_DBG("(%d, %d)", address, num_bytes);
+    LOG_DBG("temp = %d", temp);
+
     if(temp != 0) {
         LOG_WRN("Erase address not aligned to %u B (off by %u bytes), adjusting", block_size, temp);
         address -= temp;
         // we have to increase the number of bytes by the block offset bytes
         num_bytes_to_erase += temp;
     }
+    LOG_DBG("address = %d", address);
+
 
     temp = num_bytes_to_erase % block_size;
     if(temp != 0) {
         LOG_WRN("Bytes to erase (%u) not multiple of block size (%u), adjusting by %u", num_bytes_to_erase, block_size, (block_size - temp));
         num_bytes_to_erase += (block_size - temp);
     }
+    LOG_DBG("num_bytes_to_erase = %u", num_bytes_to_erase);
+
 
     ret = flash_area_erase(ext_flash_area, address, num_bytes_to_erase);
     if(ret == 0) {
@@ -86,7 +115,7 @@ EiFlashMemory::EiFlashMemory(uint32_t config_size):EiDeviceMemory(config_size, 9
     memory_size = ext_flash_area->fa_size;
     memory_blocks = memory_size / block_size;
 
-    LOG_DBG("Using flash device: %s", ext_flash_area->fa_dev_name);
+    LOG_DBG("Using flash device: %d", ext_flash_area->fa_id);
     LOG_DBG("Flash device size: %lu bytes", ext_flash_area->fa_size);
     LOG_DBG("Flash device offset: 0x%x", ext_flash_area->fa_off);
     LOG_DBG("Flash device align: 0x%x", flash_area_align(ext_flash_area));

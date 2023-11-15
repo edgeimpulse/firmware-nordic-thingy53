@@ -28,7 +28,7 @@
 #include "ei_device_thingy53.h"
 #include "ble/ble_nus.h"
 #include "cJSON.h"
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(run_impulse);
 
 typedef enum {

@@ -29,10 +29,10 @@
 #include "sensors/ei_inertial_sensor.h"
 #include "sensors/ei_light_sensor.h"
 #include "sensors/ei_microphone.h"
-#include <drivers/uart.h>
-#include <logging/log.h>
+#include <zephyr/drivers/uart.h>
+#include <zephyr/logging/log.h>
 #include <nrfx_clock.h>
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #define LOG_MODULE_NAME main
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);

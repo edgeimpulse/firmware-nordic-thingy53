@@ -3,7 +3,7 @@
 
 menuconfig VM3011
 	bool "VM3011 dmic"
-	depends on I2C
+	select I2C
 	select NRFX_PDM
 	select SENSOR #Needed to enable the SENS_PWR_CTRL of THINGY:53
 	help

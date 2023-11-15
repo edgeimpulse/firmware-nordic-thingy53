@@ -4,22 +4,23 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <device.h>
-#include <drivers/i2c.h>
-#include <logging/log.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/i2c.h>
+#include <zephyr/logging/log.h>
 #include "bme68x.h"
 #include "bme68x_port.h"
+#include <zephyr/drivers/sensor.h>
 
 LOG_MODULE_REGISTER(common);
 
 /******************************************************************************/
 /*!                Static variable definition                                 */
 static uint8_t dev_addr;
-const struct device *i2c_dev;
+const struct device *i2c_dev = DEVICE_DT_GET(DT_ALIAS(bme68xi2c1));
 
 /******************************************************************************/
 /*!                User interface functions                                   */
@@ -119,9 +120,8 @@ int8_t bme68x_interface_init(struct bme68x_dev *bme, uint8_t intf)
 {
     if (bme != NULL)
     {
-        i2c_dev = device_get_binding("I2C_1");
-        if (!i2c_dev) {
-            LOG_ERR("I2C Device not found!");
+        if (!device_is_ready(i2c_dev)) {
+            LOG_ERR("I2C device is not ready - bme68x");
             return -1;
         }
 

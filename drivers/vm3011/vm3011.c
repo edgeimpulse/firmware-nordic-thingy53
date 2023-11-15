@@ -8,19 +8,19 @@
 
 #define DT_DRV_COMPAT vesper_vm3011
 
-#include <kernel.h>
+#include <zephyr/kernel.h>
 #include <string.h>
-#include <init.h>
-#include <drivers/gpio.h>
-#include <sys/byteorder.h>
-#include <sys/__assert.h>
-#include <drivers/i2c.h>
-#include <audio/dmic.h>
+#include <zephyr/init.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/sys/byteorder.h>
+#include <zephyr/sys/__assert.h>
+#include <zephyr/drivers/i2c.h>
+#include <zephyr/audio/dmic.h>
 #include "nrfx_pdm.h"
 
 #include "vm3011.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(vm3011, LOG_LEVEL_DBG);
 
 #define PDM_PERIPHERAL_RATIO_64 64UL
@@ -32,13 +32,13 @@ static uint8_t pcm_buffer_in_use = 0;
 static bool pcm_buffer_avalable = false;
 
 static const struct vm3011_config vm3011_cfg = {
-	.i2c_dev_label = DT_INST_BUS_LABEL(0),
+	.i2c_dev = DEVICE_DT_GET(DT_ALIAS(mic0)),
 	.i2c_address = DT_INST_REG_ADDR(0),
 	.data_pin = DT_INST_PROP(0, data_pin),
 	.clk_pin = DT_INST_PROP(0, clk_pin),
 	.lr_pin_level = DT_INST_PROP(0, lr_select),
 #if defined(CONFIG_VM3011_INT)
-	.gpio_port = DT_INST_GPIO_LABEL(0, dout_gpios),
+	//.gpio_port = DT_INST_GPIO_LABEL(0, dout_gpios),
 	.dout_pin = DT_INST_GPIO_PIN(0, dout_gpios),
 	.dout_flags = DT_INST_GPIO_FLAGS(0, dout_gpios),
 #endif
@@ -613,9 +613,9 @@ static int vm3011_init(const struct device *dev)
 	const struct vm3011_config *config = dev->config;
 	struct vm3011_data *dmic_data = dev->data;
 
-	dmic_data->i2c_dev = device_get_binding(config->i2c_dev_label);
+	dmic_data->i2c_dev = config->i2c_dev;
 	if(!dmic_data->i2c_dev) {
-		LOG_ERR("I2C device not found: %s", config->i2c_dev_label);
+		LOG_ERR("vm3011 I2C device not found");
 		return -EINVAL;
 	}
 

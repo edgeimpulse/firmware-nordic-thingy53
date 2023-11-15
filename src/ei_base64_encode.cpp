@@ -29,9 +29,9 @@
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
 #include "firmware-sdk/ei_device_info_lib.h"
 #include "firmware-sdk/ei_device_memory.h"
-#include <logging/log.h>
-#include <drivers/uart.h>
-#include <zephyr.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/drivers/uart.h>
+#include <zephyr/kernel.h>
 #include <cmath>
 
 LOG_MODULE_REGISTER(base64);

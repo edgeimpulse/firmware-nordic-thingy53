@@ -5,7 +5,7 @@
 
 &i2c1 {
     clock-frequency = <I2C_BITRATE_FAST>;
-    vm3011@60 {
+    vm3011: vm3011@60  {
         compatible = "vesper,vm3011";
         label = "VM3011";
         reg = <0x60>;
@@ -80,6 +80,12 @@
 		zephyr,console = &cdc_acm_uart0;
 		zephyr,shell-uart = &cdc_acm_uart0;
 		nordic,pm-ext-flash = &mx25r64;
+	};
+
+	aliases {
+		light0 = &bh1749;
+		bme68xi2c1 = &i2c1;
+		mic0 = &i2c1;
 	};
 };
 

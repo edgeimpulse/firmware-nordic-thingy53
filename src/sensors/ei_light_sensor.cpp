@@ -24,24 +24,23 @@
 #include "ei_light_sensor.h"
 #include "ei_device_thingy53.h"
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
-#include <zephyr.h>
-#include <drivers/sensor.h>
-#include <logging/log.h>
+#include <zephyr/kernel.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/logging/log.h>
 #include <cstdint>
 
 #define LOG_MODULE_NAME ei_light
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
-const struct device *light_dev;
+static const struct device *const light_dev = DEVICE_DT_GET(DT_ALIAS(light0));
 static float sample[LIGHTSENSOR_VALUES_IN_SAMPLE] = {0};
 
 bool ei_lightsensor_init(void)
 {
-	light_dev = device_get_binding("BH1749");
-	if (!light_dev) {
-		LOG_ERR("Devicetree has no BH1749 node");
-		return false;
-	}
+    if (!device_is_ready(light_dev)) {
+        LOG_ERR("sensor: device %s not ready.\n", light_dev->name);
+        return false;
+    }
 
     if(ei_add_sensor_to_fusion_list(light_sensor) == false) {
         ei_printf("ERR: failed to register Light sensor!\n");

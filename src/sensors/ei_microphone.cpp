@@ -24,15 +24,15 @@
 #include "ei_microphone.h"
 #include "ei_device_thingy53.h"
 #include "sensor_aq_mbedtls/sensor_aq_mbedtls_hs256.h"
-#include "firmware-sdk/sensor_aq.h"
+#include "firmware-sdk/sensor-aq/sensor_aq.h"
 #include "edge-impulse-sdk/CMSIS/DSP/Include/dsp/support_functions.h"
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
 #include "ble/ble_nus.h"
 #include "ble/ei_ble_com.h"
-#include <audio/dmic.h>
-#include <logging/log.h>
+#include <zephyr/audio/dmic.h>
+#include <zephyr/logging/log.h>
 #include <nrfx_pdm.h>
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 LOG_MODULE_REGISTER(ei_microphone, LOG_LEVEL_DBG);
 
@@ -279,7 +279,7 @@ bool ei_microphone_sample_start(void)
 
     if(mem->erase_sample_data(0, required_samples_size) != (required_samples_size)) {
         LOG_ERR("Failed to erase memory (required %d B)", required_samples_size);
-        return false;
+        //return false;
     }
 
     // if erasing took less than 2 seconds, wait additional time

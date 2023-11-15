@@ -24,10 +24,10 @@
 #include "ei_inertial_sensor.h"
 #include "ei_device_thingy53.h"
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
-#include <zephyr.h>
-#include <device.h>
-#include <drivers/sensor.h>
-#include <logging/log.h>
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/logging/log.h>
 #include <cstdint>
 
 LOG_MODULE_REGISTER(inertial_sensor);
@@ -36,8 +36,8 @@ static void acc_timer_handler(struct k_timer *dummy);
 static void acc_work_handler(struct k_work *work);
 
 sampler_callback inertial_cb_sampler;
-static const struct device *accel_dev;
-static const struct device *mag_dev;
+static const struct device *const accel_dev = DEVICE_DT_GET(DT_ALIAS(accel0));
+static const struct device *const mag_dev = DEVICE_DT_GET(DT_ALIAS(magn0));
 static float imu_data[INERTIAL_AXIS_SAMPLED];
 static bool inertial_init = false;
 K_TIMER_DEFINE(acc_timer, acc_timer_handler, NULL);
@@ -50,17 +50,15 @@ K_WORK_DEFINE(acc_work, acc_work_handler);
  */
 bool ei_inertial_init(void)
 {
-	accel_dev = device_get_binding("ADXL362");
-	if (accel_dev == NULL) {
-		LOG_ERR("Device get binding device");
-		return false;
-	}
+    if (!device_is_ready(accel_dev)) {
+        LOG_ERR("sensor: device %s not ready.\n", accel_dev->name);
+        return false;
+    }
 
-	mag_dev = device_get_binding("BMM150");
-	if (mag_dev == NULL) {
-		LOG_ERR("Device get binding device");
-		return false;
-	}
+    if (!device_is_ready(mag_dev)) {
+        LOG_ERR("sensor: device %s not ready.\n", mag_dev->name);
+        return false;
+    }
 
     if(ei_add_sensor_to_fusion_list(inertial_sensor) == false) {
         ei_printf("ERR: failed to register Inertial sensor!\n");
@@ -75,9 +73,9 @@ static bool ei_inertial_fetch_sample(void)
 {
     struct sensor_value raw_sample[INERTIAL_AXIS_SAMPLED];
 
-	if(inertial_init == false) {
-		return false;
-	}
+    if(inertial_init == false) {
+        return false;
+    }
 
     if (sensor_sample_fetch(accel_dev) < 0) {
         LOG_ERR("Sample fetch error");
@@ -116,11 +114,11 @@ static void acc_timer_handler(struct k_timer *dummy)
 
 static void acc_work_handler(struct k_work *work)
 {
-	if(ei_inertial_fetch_sample() == false) {
+    if(ei_inertial_fetch_sample() == false) {
         imu_data[0] = 0.0f;
         imu_data[1] = 0.0f;
         imu_data[2] = 0.0f;
-	}
+    }
 
     if(inertial_cb_sampler((const void *)&imu_data[0], SIZEOF_ACCEL_AXIS_SAMPLED) == true) {
         k_timer_stop(&acc_timer);
@@ -175,11 +173,11 @@ bool ei_accel_setup_data_sampling(void)
 
 float *ei_fusion_inertial_read_data(int n_samples)
 {
-	if(ei_inertial_fetch_sample() == false) {
+    if(ei_inertial_fetch_sample() == false) {
         for(int i = 0; i < INERTIAL_AXIS_SAMPLED; i++) {
             imu_data[i] = 0.0f;
         }
-	}
+    }
 
     return imu_data;
 }

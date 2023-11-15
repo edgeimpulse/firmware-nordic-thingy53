@@ -29,8 +29,8 @@
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
 #include "ble/ble_nus.h"
 #include "ble/ei_ble_com.h"
-#include <zephyr.h>
-#include <logging/log.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 #include <cstdint>
 #include <cstdlib>
 
@@ -144,9 +144,9 @@ bool ei_sampler_start_sampling(void *v_ptr_payload, starter_callback ei_sample_s
     if(dev->get_serial_channel() == BLE) {
         LOG_INF("Interval: %.5f ms.", dev->get_sample_interval_ms());
         LOG_INF("Length: %u ms.", dev->get_sample_length_ms());
-        LOG_INF("Name: %s", log_strdup(dev->get_sample_label().c_str()));
-        LOG_INF("HMAC Key: %s", log_strdup(dev->get_sample_hmac_key().c_str()));
-        LOG_INF("File name: %s", log_strdup(dev->get_sample_label().c_str()));
+        LOG_INF("Name: %s", dev->get_sample_label().c_str());
+        LOG_INF("HMAC Key: %s", dev->get_sample_hmac_key().c_str());
+        LOG_INF("File name: %s", dev->get_sample_label().c_str());
     }
     else {
         ei_printf("Sampling settings:\n");

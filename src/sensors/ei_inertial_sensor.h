@@ -24,10 +24,7 @@
 #define EI_INERTIAL_SENSOR_H
 
 /* Include ----------------------------------------------------------------- */
-#include <zephyr.h>
-#include <device.h>
-#include <devicetree.h>
-#include <drivers/sensor.h>
+#include <zephyr/kernel.h>
 #include "ei_sampler.h"
 #include "firmware-sdk/ei_fusion.h"
 

@@ -8,9 +8,9 @@
 #define __VM3011_H__
 
 #include <zephyr/types.h>
-#include <device.h>
-#include <drivers/gpio.h>
-#include <drivers/i2c.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/i2c.h>
 // #include "nrfx_pdm.h"
 
 
@@ -141,7 +141,7 @@ typedef enum{
 }dmic_out_sample_rate;
 
 struct vm3011_config {
-    const char *i2c_dev_label;
+    const struct device *i2c_dev;
 	uint16_t i2c_address;
 
     gpio_pin_t data_pin;

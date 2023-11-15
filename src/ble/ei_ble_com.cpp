@@ -1,8 +1,30 @@
+/* Edge Impulse ingestion SDK
+ * Copyright (c) 2022 EdgeImpulse Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "ei_ble_com.h"
 #include <string>
 #include <cstring>
 #include <vector>
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include "cJSON.h"
 #include "ei_device_thingy53.h"
 #include "ei_sampler.h"
@@ -13,7 +35,7 @@
 #include "firmware-sdk/ei_fusion.h"
 #include "firmware-sdk/at_base64_lib.h"
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(ei_ble_com, LOG_LEVEL_DBG);
 
@@ -413,7 +435,7 @@ static void ei_ble_sample(const cJSON *sample_config)
 
     hmacKey_o = cJSON_GetObjectItemCaseSensitive(sample_config, "hmacKey");
     if (cJSON_IsString(hmacKey_o) && (hmacKey_o != NULL)) {
-        LOG_INF("hmackey: %s", log_strdup(cJSON_GetStringValue(hmacKey_o)));
+        LOG_INF("hmackey: %s", cJSON_GetStringValue(hmacKey_o));
     }
     else{
         LOG_WRN("issue with parameter hmackey");
@@ -422,7 +444,7 @@ static void ei_ble_sample(const cJSON *sample_config)
 
     label_o = cJSON_GetObjectItemCaseSensitive(sample_config, "label");
     if (cJSON_IsString(label_o) && (label_o != NULL)) {
-        LOG_INF("label %s", log_strdup(cJSON_GetStringValue(label_o)));
+        LOG_INF("label %s", cJSON_GetStringValue(label_o));
     }
     else{
         LOG_WRN("issue with parameter label");
@@ -431,7 +453,7 @@ static void ei_ble_sample(const cJSON *sample_config)
 
     path_o = cJSON_GetObjectItemCaseSensitive(sample_config, "path");
     if (cJSON_IsString(path_o) && (path_o != NULL)) {
-        LOG_INF("path %s", log_strdup(cJSON_GetStringValue(path_o)));
+        LOG_INF("path %s", cJSON_GetStringValue(path_o));
     }
     else{
         LOG_WRN("issue with parameter path");
@@ -446,7 +468,7 @@ static void ei_ble_sample(const cJSON *sample_config)
 
     sensor_o = cJSON_GetObjectItemCaseSensitive(sample_config, "sensor");
     if (cJSON_IsString(sensor_o) && (sensor_o != NULL)) {
-        LOG_INF("sensor %s", log_strdup(cJSON_GetStringValue(sensor_o)));
+        LOG_INF("sensor %s", cJSON_GetStringValue(sensor_o));
     }
     else{
         LOG_WRN("issue with parameter sensor");
