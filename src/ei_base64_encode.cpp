@@ -34,7 +34,7 @@
 #include <zephyr/kernel.h>
 #include <cmath>
 
-LOG_MODULE_REGISTER(base64);
+LOG_MODULE_REGISTER(base64, LOG_LEVEL_DBG);
 
 static const struct device *uart;
 static const char *base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -76,7 +76,7 @@ void base64_encode(const char *input, size_t input_size)
         // bulk transfer is faster than byte-by-byte
         uart_fifo_fill(uart, char_array_4, i + 1);
 
-        memset(char_array_4, '=', 5);
+        memset(char_array_4, '=', 4);
         uart_fifo_fill(uart, char_array_4, 3 - i);
     }
 }
@@ -102,6 +102,7 @@ bool read_encode_send(size_t address, size_t length)
 	}
 
     while (1) {
+        LOG_DBG("Reading %d bytes from %d", length, address);
         size_t bytes_to_read = buffer_size;
 
         if (bytes_to_read > length) {

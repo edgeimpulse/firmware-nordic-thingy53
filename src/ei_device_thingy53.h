@@ -1,5 +1,5 @@
 /* Edge Impulse ingestion SDK
- * Copyright (c) 2022 EdgeImpulse Inc.
+ * Copyright (c) 2023 EdgeImpulse Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,8 @@
 
 typedef enum {
     UART = 0,
-    BLE
+    BLE,
+    WIFI
 } serial_channel_t;
 
 class EiDeviceThingy53 : public EiDeviceInfo
@@ -65,6 +66,9 @@ public:
 
     bool get_sensor_list(const ei_device_sensor_t **sensor_list, size_t *sensor_list_size) override;
     uint32_t get_data_output_baudrate(void) override;
+
+    int set_wifi_config(const char *ssid, const char *password, const int security);
+    int get_wifi_config(char *ssid, char *password, int *security);
 };
 
 #endif /* EI_DEVICE_NORDIC_NRF5X_H */

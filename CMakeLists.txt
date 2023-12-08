@@ -5,7 +5,13 @@
 
 cmake_minimum_required(VERSION 3.13.1)
 
-set(PM_STATIC_YML_FILE ${CMAKE_CURRENT_SOURCE_DIR}/boards/pm_static_${BOARD}.yml)
+# If project is build with WiFi shiled using the command line
+# west build -b thingy53_nrf5340_cpuapp -p -- -DSHIELD=nrf7002eb
+# then the SHIELD variable is set to nrf7002eb and additional configuratio for project is added
+if("${SHIELD}" STREQUAL "nrf7002eb")
+    set(CONF_FILE ${CMAKE_CURRENT_SOURCE_DIR}/boards/shield-nrf7002eb.conf; ${CMAKE_CURRENT_SOURCE_DIR}/boards/thingy53_nrf5340_cpuapp.conf; ${CMAKE_CURRENT_SOURCE_DIR}/prj.conf)
+endif()
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -40,7 +46,6 @@ set(INCLUDES
     ei-model/tflite-model
     ei-model/model-parameters
     src
-    src/libs/mbedtls_hmac_sha256_sw
     src/libs
     )
 include_directories(${INCLUDES})
@@ -50,7 +55,6 @@ RECURSIVE_FIND_FILE(BME68X_FILES "drivers/bme68x" "*.c")
 RECURSIVE_FIND_FILE(FIRMWARE_SDK_FILES "firmware-sdk" "*.cpp")
 RECURSIVE_FIND_FILE(FIRMWARE_SDK_C_FILES "firmware-sdk" "*.c")
 RECURSIVE_FIND_FILE(LIB_MBEDTLS_FILES "src/libs/mbedtls_hmac_sha256_sw/mbedtls/src" "*.c")
-RECURSIVE_FIND_FILE(LIB_SENSOR_AQ_MBEDTLS_FILES "src/libs/sensor_aq_mbedtls" "*.cpp")
 RECURSIVE_FIND_FILE(SENSORS_FILES "src/sensors" "*.cpp")
 RECURSIVE_FIND_FILE(INFERENCE_FILES "src/inference" "*.cpp")
 
@@ -68,6 +72,10 @@ target_sources(app PRIVATE ${SOURCE_FILES})
 target_sources(app PRIVATE src/ble/ei_ble_com.cpp)
 target_sources(app PRIVATE src/ble/nus.c)
 target_sources(app PRIVATE src/ble/ble_nus.cpp)
+if("${SHIELD}" STREQUAL "nrf7002eb")
+    target_sources(app PRIVATE src/wifi/wifi.cpp)
+    target_sources(app PRIVATE src/wifi/ei_ws_client.cpp)
+endif()
 target_sources(app PRIVATE src/ei_base64_encode.cpp)
 target_sources(app PRIVATE src/ei_at_handlers.cpp)
 target_sources(app PRIVATE src/ei_device_thingy53.cpp)

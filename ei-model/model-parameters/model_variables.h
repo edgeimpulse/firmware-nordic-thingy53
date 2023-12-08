@@ -121,8 +121,8 @@ const ei_model_performance_calibration_t ei_calibration = {
     0   /* Don't use flags */
 };
 
-const ei_impulse_t impulse_85_1 = {
-    .project_id = 85,
+const ei_impulse_t impulse_122_1 = {
+    .project_id = 122,
     .project_owner = "Edge Impulse Profiling",
     .project_name = "Demo: Continuous motion recognition",
     .deploy_version = 1,
@@ -138,13 +138,13 @@ const ei_impulse_t impulse_85_1 = {
     .frequency = 62.5,
     .dsp_blocks_size = ei_dsp_blocks_size,
     .dsp_blocks = ei_dsp_blocks,
-
+    
     .object_detection = 0,
     .object_detection_count = 0,
     .object_detection_threshold = 0,
     .object_detection_last_layer = EI_CLASSIFIER_LAST_LAYER_UNKNOWN,
     .fomo_output_size = 0,
-
+    
     .tflite_output_features_count = 4,
     .learning_blocks_size = ei_learning_blocks_size,
     .learning_blocks = ei_learning_blocks,
@@ -162,6 +162,6 @@ const ei_impulse_t impulse_85_1 = {
     .categories = ei_classifier_inferencing_categories
 };
 
-const ei_impulse_t ei_default_impulse = impulse_85_1;
+const ei_impulse_t ei_default_impulse = impulse_122_1;
 
 #endif // _EI_CLASSIFIER_MODEL_METADATA_H_

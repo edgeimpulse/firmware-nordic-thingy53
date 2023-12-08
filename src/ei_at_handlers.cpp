@@ -35,6 +35,8 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/kernel.h>
 #include <string>
+#include "wifi/wifi.h"
+#include "wifi/ei_ws_client.h"
 
 LOG_MODULE_REGISTER(at_handlers, LOG_LEVEL_DBG);
 
@@ -43,6 +45,8 @@ using namespace std;
 static EiDeviceThingy53 *dev;
 
 #define TRANSFER_BUF_LEN 32
+
+bool at_get_wifi(void);
 
 inline bool check_args_num(const int &required, const int &received)
 {
@@ -182,7 +186,12 @@ bool at_clear_config(void)
 {
     dev->clear_config();
     dev->init_device_id();
-
+#ifdef CONFIG_WIFI_NRF700X
+    if(cmd_wifi_connected()) {
+        ei_ws_client_stop();
+        cmd_wifi_disconnect();
+    }
+#endif
     return true;
 }
 
@@ -239,6 +248,8 @@ bool at_read_buffer(const char **argv, const int argc)
 
 bool at_sample_start(const char **argv, const int argc)
 {
+    EiDeviceThingy53 *dev = static_cast<EiDeviceThingy53*>(EiDeviceInfo::get_device());
+    dev->set_serial_channel(UART);
     if(argc < 1) {
         ei_printf("Missing sensor name!\n");
         return true;
@@ -307,12 +318,16 @@ bool at_get_config(void)
     ei_built_sensor_fusion_list();
     ei_printf("\n");
     ei_printf("===== WIFI =====\n");
-    ei_printf("SSID:      \n");
-    ei_printf("Password:  \n");
-    ei_printf("Security:  0\n");
+#ifdef CONFIG_WIFI_NRF700X
+    at_get_wifi();
+#else
+    ei_printf("Present:   %d\n", false);
+    ei_printf("SSID:      %s\n", "");
+    ei_printf("Password:  %s\n", "");
+    ei_printf("Security:  %d\n", false);
     ei_printf("MAC:       %s\n", dev->get_mac_address().c_str());
-    ei_printf("Connected: 0\n");
-    ei_printf("Present:   0\n");
+    ei_printf("Connected: %d\n", false);
+#endif
     ei_printf("\n");
     ei_printf("===== Sampling parameters =====\n");
     ei_printf("Label:     %s\n", dev->get_sample_label().c_str());
@@ -327,7 +342,12 @@ bool at_get_config(void)
     ei_printf("\n");
     ei_printf("===== Remote management =====\n");
     ei_printf("URL:        %s\n", dev->get_management_url().c_str());
-    ei_printf("Connected:  0\n");
+#ifdef CONFIG_WIFI_NRF700X
+    bool connected = ei_ws_get_connection_status();
+#else
+    bool connected = false;
+#endif
+    ei_printf("Connected: %d\n", connected);
     ei_printf("Last error: \n");
     ei_printf("\n");
 
@@ -336,6 +356,8 @@ bool at_get_config(void)
 
 bool at_run_impulse(void)
 {
+    EiDeviceThingy53 *dev = static_cast<EiDeviceThingy53*>(EiDeviceInfo::get_device());
+    dev->set_serial_channel(UART);
     ei_start_impulse(false, false);
 
     return false;
@@ -343,6 +365,8 @@ bool at_run_impulse(void)
 
 bool at_run_impulse_cont(void)
 {
+    EiDeviceThingy53 *dev = static_cast<EiDeviceThingy53*>(EiDeviceInfo::get_device());
+    dev->set_serial_channel(UART);
     ei_start_impulse(true, false);
 
     return false;
@@ -350,7 +374,8 @@ bool at_run_impulse_cont(void)
 
 bool at_run_impulse_static_data(const char **argv, const int argc)
 {
-
+    EiDeviceThingy53 *dev = static_cast<EiDeviceThingy53*>(EiDeviceInfo::get_device());
+    dev->set_serial_channel(UART);
     if (check_args_num(2, argc) == false) {
         return false;
     }
@@ -365,10 +390,84 @@ bool at_run_impulse_static_data(const char **argv, const int argc)
 
 bool at_stop_impulse(void)
 {
+    EiDeviceThingy53 *dev = static_cast<EiDeviceThingy53*>(EiDeviceInfo::get_device());
+    dev->set_serial_channel(UART);
     ei_stop_impulse();
 
     return true;
 }
+
+#ifdef CONFIG_WIFI_NRF700X
+bool at_scan_wifi(void)
+{
+    cmd_wifi_scan();
+    cmd_wifi_scan_done();
+
+    return true;
+}
+
+bool at_set_wifi(const char **argv, const int argc)
+{
+    LOG_DBG("set WiFi\n");
+
+    char *endptr;
+	int idx = 1;
+    static const char* password = NULL;
+    unsigned int security = 0;
+
+	if (argc < 1) {
+		return -EINVAL;
+	}
+
+    /* PSK (optional) */
+	if (idx < argc) {
+		password = argv[idx];
+		idx++;
+
+		if (idx < argc) {
+			security = strtol(argv[idx], &endptr, 10);
+		}
+	} else {
+        password = NULL;
+		security = 0;
+	}
+
+    cmd_wifi_connect(argv[0], password, security);
+    //waithing to connect to wifi
+    if(cmd_wifi_connecting() < 0) {
+        ei_printf("ERR: Failed to connect to WiFi\n");
+        return false;
+    } 
+    //waitinhg to connect to dhcp
+    if(cmd_dhcp_configured() < 0) {
+        ei_printf("ERR: Failed to configure DHCP\n");
+        return false;
+    }
+    ei_ws_client_start(dev, nullptr);
+    ei_sleep(100);
+    ei_printf("OK\n");
+
+    return true;
+}
+
+bool at_get_wifi(void)
+{
+    char ssid[128] = { 0 };
+    char password[128] = { 0 };
+    int security = 0;
+
+    dev->get_wifi_config(ssid, password, &security);
+
+    ei_printf("Present:   1\n");
+    ei_printf("SSID:      %s\n", ssid);
+    ei_printf("Password:  %s\n", password);
+    ei_printf("Security:  %d\n", security);
+    ei_printf("MAC:       %s\n", dev->get_mac_address().c_str());
+    ei_printf("Connected: %d\n", cmd_wifi_connected());
+
+    return true;
+}
+#endif
 
 ATServer *ei_at_init(void)
 {
@@ -392,6 +491,10 @@ ATServer *ei_at_init(void)
     at->register_command(AT_RUNIMPULSECONT, AT_RUNIMPULSECONT_HELP_TEXT, at_run_impulse_cont, nullptr, nullptr, nullptr);
     at->register_command("STOPIMPULSE", "", at_stop_impulse, nullptr, nullptr, nullptr);
     at->register_command(AT_RUNIMPULSESTATIC, AT_RUNIMPULSESTATIC_HELP_TEXT, nullptr, nullptr, at_run_impulse_static_data, AT_RUNIMPULSESTATIC_ARGS);
+#ifdef CONFIG_WIFI_NRF700X
+    at->register_command(AT_WIFI, AT_WIFI_HELP_TEXT, nullptr, &at_get_wifi, &at_set_wifi, AT_WIFI_ARGS);
+    at->register_command(AT_SCANWIFI, AT_SCANWIFI_HELP_TEXT, &at_scan_wifi, nullptr, nullptr, nullptr);
+#endif
 
     return at;
 }

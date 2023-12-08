@@ -20,32 +20,23 @@
  * SOFTWARE.
  */
 
-#ifndef EI_LIGHT_SENSOR_H
-#define EI_LIGHT_SENSOR_H
+#ifndef WIFI_H_
+#define WIFI_H_
 
-/* Include ----------------------------------------------------------------- */
-#include "firmware-sdk/ei_fusion.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/** Number of axis used and sample data format */
-#define LIGHTSENSOR_VALUES_IN_SAMPLE          4 
-#define SIZEOF_LIGHTSENSOR_VALUES_IN_SAMPLE   (sizeof(float) * LIGHTSENSOR_VALUES_IN_SAMPLE)
+int cmd_wifi_scan(void);
+void cmd_wifi_scan_done(void);
+int cmd_wifi_connect(const char *ssid, const char *psk, int security);
+int cmd_wifi_disconnect(void);
+int cmd_wifi_connecting(void);
+int cmd_dhcp_configured(void);
+bool cmd_wifi_connected(void);
 
-/* Function prototypes ----------------------------------------------------- */
-bool ei_lightsensor_init(void);
-float *ei_fusion_light_read_data(int n_samples);
+#ifdef __cplusplus
+}
+#endif
 
-static const ei_device_fusion_sensor_t light_sensor = {
-    // name of sensor module to be displayed in fusion list
-    "Light",
-    // number of sensor module axis
-    LIGHTSENSOR_VALUES_IN_SAMPLE,
-    // sampling frequencies
-    { 5.0f, 1.0f},
-    // axis name and units payload (must be same order as read in)
-    { { "R ", "lux" }, { "G ", "lux" }, { "B ", "lux" }, { "I ", "lux" }, },
-    // reference to read data function
-    &ei_fusion_light_read_data,
-    0
-};
-
-#endif /* EI_LIGHT_SENSOR_H */
+#endif /* WIFI_H_ */

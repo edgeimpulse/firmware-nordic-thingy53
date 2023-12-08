@@ -1,5 +1,5 @@
 /* Edge Impulse ingestion SDK
- * Copyright (c) 2022 EdgeImpulse Inc.
+ * Copyright (c) 2023 EdgeImpulse Inc.
  *
  * Permission is hereby granted, ei_free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,12 +23,12 @@
 /* Include ----------------------------------------------------------------- */
 #include "ei_microphone.h"
 #include "ei_device_thingy53.h"
-#include "sensor_aq_mbedtls/sensor_aq_mbedtls_hs256.h"
-#include "firmware-sdk/sensor-aq/sensor_aq.h"
+#include "firmware-sdk/sensor-aq/sensor_aq_none.h"
 #include "edge-impulse-sdk/CMSIS/DSP/Include/dsp/support_functions.h"
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
 #include "ble/ble_nus.h"
 #include "ble/ei_ble_com.h"
+#include "wifi/ei_ws_client.h"
 #include <zephyr/audio/dmic.h>
 #include <zephyr/logging/log.h>
 #include <nrfx_pdm.h>
@@ -80,7 +80,6 @@ K_SEM_DEFINE(data_ready, 0, 1);
 
 static unsigned char ei_mic_ctx_buffer[1024];
 static sensor_aq_signing_ctx_t ei_mic_signing_ctx;
-static sensor_aq_mbedtls_hs256_ctx_t ei_mic_hs_ctx;
 static sensor_aq_ctx ei_mic_ctx = {
     { ei_mic_ctx_buffer, 1024 },
     &ei_mic_signing_ctx,
@@ -125,7 +124,7 @@ static bool create_header(sensor_aq_payload_info *payload)
     int ret;
     EiDeviceInfo *dev = EiDeviceInfo::get_device();
     EiDeviceMemory* mem = dev->get_memory();
-    sensor_aq_init_mbedtls_hs256_context(&ei_mic_signing_ctx, &ei_mic_hs_ctx, dev->get_sample_hmac_key().c_str());
+    sensor_aq_init_none_context(&ei_mic_signing_ctx);//sensor_aq_init_mbedtls_hs256_context(&ei_mic_signing_ctx, &ei_mic_hs_ctx, dev->get_sample_hmac_key().c_str());
 
     ret = sensor_aq_init(&ei_mic_ctx, payload, NULL, true);
 
@@ -218,6 +217,22 @@ bool ei_microphone_sample_start(void)
     int ret;
     uint32_t required_samples;
     uint8_t *page_buffer;
+    // used for optimizing memory comsumpton
+    const char *str_sample_settings = "Sampling settings:";
+    const char *str_interval = "\tInterval:";
+    const char *str_length = "\tLength:";
+    const char *str_name = "\tName:";
+    const char *str_hmac_key = "\tHMAC Key:";
+    const char *str_file_name = "\tFile name:";
+    const char *str_error_mic_init = "Error microphone init";
+    const char *str_error_mic_start = "Error microphone srart";
+    const char *str_unknown_serial_channel = "Unknown serial channel";
+    const char *str_failed_to_finish_signature = "Failed to finish signature";
+    const char *str_failed_to_allocate_page = "Failed to allocate a page buffer to write the hash";
+    const char *failed_to_read_first_page = "Failed to read first page";
+    const char *failed_to_erase_first_page = "Failed to erase first page";
+    const char *failed_to_write_first_page = "Failed to write first page with updated hash";
+
 
     sensor_aq_payload_info payload = {
         dev->get_device_id().c_str(),
@@ -227,20 +242,37 @@ bool ei_microphone_sample_start(void)
     };
 
     if(dev->get_serial_channel() == BLE) {
-        LOG_INF("Sampling settings:");
-        LOG_INF("\tInterval: %.5f ms.", dev->get_sample_interval_ms());
-        LOG_INF("\tLength: %lu ms.", dev->get_sample_length_ms());
-        LOG_INF("\tName: %s", dev->get_sample_label().c_str());
-        LOG_INF("\tHMAC Key: %s", dev->get_sample_hmac_key().c_str());
-        LOG_INF("\tFile name: %s", dev->get_sample_label().c_str());
+        LOG_INF("%s", str_sample_settings);
+        LOG_INF("%s %.5f ms.", str_interval, dev->get_sample_interval_ms());
+        LOG_INF("%s %lu ms.", str_length, dev->get_sample_length_ms());
+        LOG_INF("%s %s", str_name, dev->get_sample_label().c_str());
+        LOG_INF("%s %s", str_hmac_key, dev->get_sample_hmac_key().c_str());
+        LOG_INF("%s %s", str_file_name, dev->get_sample_label().c_str());
     }
+    else if(dev->get_serial_channel() == UART) {
+        ei_printf("%s\n", str_sample_settings);
+        ei_printf("%s %.5f ms.\n", str_interval, dev->get_sample_interval_ms());
+        ei_printf("%s %lu ms.\n", str_length, dev->get_sample_length_ms());
+        ei_printf("%s %s\n", str_name, dev->get_sample_label().c_str());
+        ei_printf("%s %s\n", str_hmac_key, dev->get_sample_hmac_key().c_str());
+        ei_printf("%s %s\n", str_file_name, dev->get_sample_label().c_str());
+    }
+#ifdef CONFIG_WIFI_NRF700X
+    else if(dev->get_serial_channel() == WIFI) {
+        LOG_INF("%s", str_sample_settings);
+        LOG_INF("%s %.5f ms.", str_interval, dev->get_sample_interval_ms());
+        LOG_INF("%s %lu ms.", str_length, dev->get_sample_length_ms());
+        LOG_INF("%s %s", str_name, dev->get_sample_label().c_str());
+        LOG_INF("%s %s", str_hmac_key, dev->get_sample_hmac_key().c_str());
+        LOG_INF("%s %s", str_file_name, dev->get_sample_label().c_str());
+        LOG_DBG("WiFi COM: Sample request responce...");
+        if(ei_ws_get_connection_status()) {
+            ei_ws_send_msg(TxMsgType::SampleStartMsg);
+        }
+    }
+#endif
     else {
-        ei_printf("Sampling settings:\n");
-        ei_printf("\tInterval: %.5f ms.\n", dev->get_sample_interval_ms());
-        ei_printf("\tLength: %lu ms.\n", dev->get_sample_length_ms());
-        ei_printf("\tName: %s\n", dev->get_sample_label().c_str());
-        ei_printf("\tHMAC Key: %s\n", dev->get_sample_hmac_key().c_str());
-        ei_printf("\tFile name: %s\n", dev->get_sample_label().c_str());
+        LOG_ERR("%s", str_unknown_serial_channel);
     }
 
     required_samples = (uint32_t)((dev->get_sample_length_ms()) / dev->get_sample_interval_ms());
@@ -258,22 +290,42 @@ bool ei_microphone_sample_start(void)
     if(dev->get_serial_channel() == UART) {
         ei_printf("Starting in %lu ms... (or until all flash was erased)\n", delay_time_ms < 2000 ? 2000 : delay_time_ms);
     }
+#ifdef CONFIG_WIFI_NRF700X
+    else if(dev->get_serial_channel() == WIFI) {
+        LOG_INF("Starting in %lu ms... (or until all flash was erased)\n", delay_time_ms < 2000 ? 2000 : delay_time_ms);
+    }
+#endif
+    else {
+        LOG_ERR("%s", str_unknown_serial_channel);
+    }
+    
 
     dev->set_state(eiStateErasingFlash);
 
     // enable mic driver
     nrfx_pdm_uninit();
     if(!setup_nrf_pdm(ingestion_samples_callback)) {
-        //TODO: print errror code
-        ei_printf("Error microphone init\n");
+        LOG_ERR("%s", str_error_mic_init);
+
+        ei_printf("%s\n", str_error_mic_init);
         return false;
     }
 
     // start sampling now to fix the issue with initial 'click noise'
     err = nrfx_pdm_start();
     if(err != NRFX_SUCCESS){
-        //TODO: print errror code
-        ei_printf("Error microphone start\n");
+        if(dev->get_serial_channel() == BLE) {
+            LOG_ERR("%s", str_error_mic_start);
+        }
+        else if(dev->get_serial_channel() == UART) {
+            ei_printf("%s\n", str_error_mic_start);
+        }
+        else if(dev->get_serial_channel() == WIFI) {
+            LOG_ERR("%s\n", str_error_mic_start);
+        }
+        else {
+            LOG_ERR("%s", str_unknown_serial_channel);
+        }
         return false;
     }
 
@@ -301,8 +353,21 @@ bool ei_microphone_sample_start(void)
         // cJSON_FreeString(json_string);
         k_free(json_string);
     }
-    else {
+    else if(dev->get_serial_channel() == UART) {
+        LOG_DBG("UART COM: Sampling...");
         ei_printf("Sampling...\n");
+    }
+#ifdef CONFIG_WIFI_NRF700X
+    else if(dev->get_serial_channel() == WIFI) {
+        LOG_DBG("WiFi COM: Sampling...");
+        if(ei_ws_get_connection_status()) {
+            ei_ws_send_msg(TxMsgType::SampleStartedMsg);
+        }
+    }
+#endif
+    else {
+        LOG_ERR("%s", str_unknown_serial_channel);
+        return false;
     }
 
     dev->set_state(eiStateSampling);
@@ -320,33 +385,58 @@ bool ei_microphone_sample_start(void)
     ret = ei_mic_ctx.signature_ctx->finish(ei_mic_ctx.signature_ctx, ei_mic_ctx.hash_buffer.buffer);
     if (ret != 0) {
         if(dev->get_serial_channel() == BLE) {
-            LOG_ERR("Failed to finish signature (%d)", ret);
+            LOG_ERR("%s (%d)", str_failed_to_finish_signature, ret);
         }
+        else if(dev->get_serial_channel() == UART) {
+            ei_printf("%s (%d)\n", str_failed_to_finish_signature, ret);
+        }
+#ifdef CONFIG_WIFI_NRF700X
+        else if(dev->get_serial_channel() == WIFI) {
+            LOG_ERR("%s (%d)\n", str_failed_to_finish_signature, ret);
+        }
+#endif
         else {
-            ei_printf("Failed to finish signature (%d)\n", ret);
+            LOG_ERR("%s", str_unknown_serial_channel);
         }
         return false;
     }
 
     // load the first page in flash...
-    page_buffer = (uint8_t*)malloc(mem->block_size);
+    page_buffer = (uint8_t*)ei_malloc(mem->block_size);
     if (!page_buffer) {
         if(dev->get_serial_channel() == BLE) {
-            LOG_ERR("Failed to allocate a page buffer to write the hash\n");
+            LOG_ERR("%s\n", str_failed_to_allocate_page);
         }
+        else if(dev->get_serial_channel() == UART) {
+            ei_printf("%s\n", str_failed_to_allocate_page);
+        }
+#ifdef CONFIG_WIFI_NRF700X
+        else if(dev->get_serial_channel() == WIFI) {
+            LOG_ERR("%s\n", str_failed_to_allocate_page);
+        }
+#endif
         else {
-            ei_printf("Failed to allocate a page buffer to write the hash\n");
+            LOG_ERR("%s", str_unknown_serial_channel);
         }
+        ei_free(page_buffer);
         return false;
     }
 
     ret = mem->read_sample_data(page_buffer, 0, mem->block_size);
     if (ret != mem->block_size) {
         if(dev->get_serial_channel() == BLE) {
-            LOG_ERR("Failed to read first page (read %d, requersted %d)\n", ret, mem->block_size);
+            LOG_ERR("%s (read %d, requersted %d)\n", failed_to_read_first_page, ret, mem->block_size);
         }
+        else if(dev->get_serial_channel() == UART) {
+            ei_printf("%s (read %d, requersted %d)\n", failed_to_read_first_page, ret, mem->block_size);
+        }
+#ifdef CONFIG_WIFI_NRF700X
+        else if(dev->get_serial_channel() == WIFI) {
+            LOG_ERR("%s (read %d, requersted %d)\n", failed_to_read_first_page, ret, mem->block_size);
+        }
+#endif
         else {
-            ei_printf("Failed to read first page (read %d, requersted %d)\n", ret, mem->block_size);
+            LOG_ERR("%s", str_unknown_serial_channel);
         }
         ei_free(page_buffer);
         return false;
@@ -374,10 +464,18 @@ bool ei_microphone_sample_start(void)
     ret = mem->erase_sample_data(0, mem->block_size);
     if (ret != mem->block_size) {
         if(dev->get_serial_channel() == BLE) {
-            LOG_ERR("Failed to erase first page (read %d, requested %d)", ret, mem->block_size);
+            LOG_ERR("%s (read %d, requested %d)", failed_to_erase_first_page,ret, mem->block_size);
         }
+        else if(dev->get_serial_channel() == UART){
+            ei_printf("%s (read %d, requested %d)\n", failed_to_erase_first_page, ret, mem->block_size);
+        }
+#ifdef CONFIG_WIFI_NRF700X
+        else if(dev->get_serial_channel() == WIFI){
+            LOG_ERR("%s (read %d, requested %d)\n", failed_to_erase_first_page, ret, mem->block_size);
+        }
+#endif
         else {
-            ei_printf("Failed to erase first page (read %d, requested %d)\n", ret, mem->block_size);
+            LOG_ERR("%s", str_unknown_serial_channel);
         }
         free(page_buffer);
         return false;
@@ -387,13 +485,23 @@ bool ei_microphone_sample_start(void)
     free(page_buffer);
     if (ret != mem->block_size) {
         if(dev->get_serial_channel() == BLE) {
-            LOG_ERR("Failed to write first page with updated hash (read %d, requested %d)", ret, mem->block_size);
+            LOG_ERR("%s (read %d, requested %d)", failed_to_write_first_page, ret, mem->block_size);
         }
-        else{
-            ei_printf("Failed to write first page with updated hash (read %d, requested %d)\n", ret, mem->block_size);
+        else if(dev->get_serial_channel() == UART) {
+            ei_printf("%s (read %d, requested %d)\n", failed_to_write_first_page, ret, mem->block_size);
+        }
+#ifdef CONFIG_WIFI_NRF700X
+        else if(dev->get_serial_channel() == WIFI) {
+            LOG_ERR("%s (read %d, requested %d)\n", failed_to_write_first_page, ret, mem->block_size);
+        }
+#endif
+        else {
+            LOG_ERR("%s", str_unknown_serial_channel);
         }
         return false;
     }
+
+    uint32_t my_size = required_samples_size + headerOffset;
 
     if(dev->get_serial_channel() == BLE) {
         LOG_INF("need to upload over BLE");
@@ -403,12 +511,25 @@ bool ei_microphone_sample_start(void)
         // cJSON_FreeString(json_string);
         k_free(json_string);
     }
-    else {
+    else if(dev->get_serial_channel() == UART) {
         ei_printf("Done sampling, total bytes collected: %u\n", required_samples_size);
         ei_printf("[1/1] Uploading file to Edge Impulse...\n");
-        ei_printf("Not uploading file, not connected to WiFi. Used buffer, from=%lu, to=%lu.\n", 0, required_samples_size + headerOffset);
+        ei_printf("Not uploading file, not connected to WiFi. Used buffer, from=%lu, to=%lu.\n", 0, my_size);
         ei_printf("OK\n");
     }
+#ifdef CONFIG_WIFI_NRF700X
+    else if(dev->get_serial_channel() == WIFI) {
+        if(ei_ws_get_connection_status()) {
+            LOG_DBG("Used buffer, from=0, to=%u.\n", my_size);
+            ei_ws_send_msg(TxMsgType::SampleUploadingMsg);
+            ei_ws_send_sample(0, my_size, false);
+            ei_ws_send_msg(TxMsgType::SampleFinishedMsg);
+        } 
+        else {
+            LOG_ERR("Not uploading file, not connected to WiFi. Used buffer, from=0, to=%u.\n", my_size);
+        }
+    }
+#endif
     return true;
 }
 

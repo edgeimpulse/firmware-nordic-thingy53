@@ -1,5 +1,5 @@
 /* Edge Impulse ingestion SDK
- * Copyright (c) 2022 EdgeImpulse Inc.
+ * Copyright (c) 2023 EdgeImpulse Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -289,6 +289,37 @@ bool EiDeviceThingy53::get_sensor_list(const ei_device_sensor_t **sensor_list, s
 uint32_t EiDeviceThingy53::get_data_output_baudrate(void)
 {
     return 921600;
+}
+
+
+int EiDeviceThingy53::set_wifi_config(const char *ssid, const char *password, const int security)
+{
+    LOG_INF("Setting WiFi config");
+    wifi_ssid = (std::string)ssid;
+    wifi_password = (std::string)password;
+    wifi_security = (EiWiFiSecurity)security;
+
+    LOG_INF("wifi: save_config");
+    save_config();
+
+    return 0;
+}
+int EiDeviceThingy53::get_wifi_config(char *ssid, char *password, int *security)
+{
+    // EiDeviceInfo::memory = mem;
+    LOG_INF("Getting WiFi config");
+    load_config();
+
+    LOG_INF("config loded");
+    LOG_INF("wifi_ssdi: %s", wifi_ssid.c_str());
+    LOG_INF("wifi_password: %s", wifi_password.c_str());
+    LOG_INF("wifi_security: %d", wifi_security);
+    // LOG_INF("config not empty");
+    strcpy(ssid, wifi_ssid.c_str());
+    strcpy(password, wifi_password.c_str());
+    *security = wifi_security;
+
+    return 0;
 }
 
 /**

@@ -52,7 +52,7 @@
 #define EI_CLASSIFIER_DATATYPE_UINT8             3
 #define EI_CLASSIFIER_DATATYPE_INT8              9
 
-#define EI_CLASSIFIER_PROJECT_ID                 85
+#define EI_CLASSIFIER_PROJECT_ID                 122
 #define EI_CLASSIFIER_PROJECT_OWNER              "Edge Impulse Profiling"
 #define EI_CLASSIFIER_PROJECT_NAME               "Demo: Continuous motion recognition"
 #define EI_CLASSIFIER_PROJECT_DEPLOY_VERSION     1
@@ -69,7 +69,6 @@
 #define EI_CLASSIFIER_HAS_ANOMALY                1
 #define EI_CLASSIFIER_FREQUENCY                  62.5
 #define EI_CLASSIFIER_HAS_MODEL_VARIABLES        1
-
 
 
 #define EI_CLASSIFIER_OBJECT_DETECTION            0
@@ -238,6 +237,8 @@ typedef struct {
     uint16_t implementation_version;
     int axes;
     bool scaling;
+    bool scaling_raw;
+    bool padding;
 } ei_dsp_config_imu_syntiant_t;
 
 #endif // _EI_CLASSIFIER_MODEL_METADATA_H_

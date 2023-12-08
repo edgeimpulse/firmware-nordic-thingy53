@@ -53,7 +53,7 @@ static EI_IMPULSE_ERROR inference_tflite_setup(
 
     TfLiteStatus init_status = graph_config->model_init(ei_aligned_calloc);
     if (init_status != kTfLiteOk) {
-        ei_printf("Failed to allocate TFLite arena (error code %d)\n", init_status);
+        ei_printf("Failed to initialize the model (error code %d)\n", init_status);
         return EI_IMPULSE_TFLITE_ARENA_ALLOC_FAILED;
     }
 

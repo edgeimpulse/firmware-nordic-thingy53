@@ -1,6 +1,6 @@
 # Edge Impulse firmware for Nordic Semiconductor Thingy:53
 
-[Edge Impulse](https://www.edgeimpulse.com) enables developers to create the next generation of intelligent device solutions with embedded Machine Learning. This repository contains the Edge Impulse firmware for the Nordic Semiconductor Thingy:53 development board that includes a subset of the available sensors, for all of the currently supported sensors see [src/sensors](https://github.com/edgeimpulse/firmware-nordic-thingy53/tree/main/src/sensors). This firmware supports all Edge Impulse features, including ingestion, remote management, and inferencing. Direct communication with the device is performed over a mobile application, but the user can execute all functions via AT command over a USB interface.
+[Edge Impulse](https://www.edgeimpulse.com) enables developers to create the next generation of intelligent device solutions with embedded Machine Learning. This repository contains the Edge Impulse firmware for the Nordic Semiconductor Thingy:53 development board that includes a subset of the available sensors, for all of the currently supported sensors see [src/sensors](https://github.com/edgeimpulse/firmware-nordic-thingy53/tree/main/src/sensors). This firmware supports all Edge Impulse features, including ingestion, remote management, and inferencing. Direct communication with the device is performed over a mobile application, but the user can execute all functions via AT command over a USB interface. By including specific build configuration this firmware can be enabled to run with Nordic compatible WiFi external board **nRF7002eb**.
 
 ## Building the device firmware (locally)
 
@@ -15,7 +15,11 @@
 3. Build the application:
 
     ```bash
+    #  Thingy:53 build command
     $ west build -b thingy53_nrf5340_cpuapp
+
+    # Thingy:53 with nRF7002eb (WiFi) builf command
+    $ west build -b thingy53_nrf5340_cpuapp -- -DSHIELD=nrf7002eb 
     ```
 
 ## Building the device firmware (Docker)
@@ -35,7 +39,11 @@
 3. Build the application:
 
     ```bash
+    #  Thingy:53 build command
     $ docker run --rm -v $PWD:/app edge-impulse-nordic west build -b thingy53_nrf5340_cpuapp
+
+    # Thingy:53 with nRF7002eb (WiFi) builf command
+    $ docker run --rm -v $PWD:/app edge-impulse-nordic west build -b thingy53_nrf5340_cpuapp -- -DSHIELD=nrf7002eb 
     ```
 
 ## Flashing
@@ -69,13 +77,13 @@
 
 ### Over Serial DFU using nRF Connect Desktop
 
-Follow the steps from [this guide](https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/device_guides/working_with_nrf/nrf53/thingy53_gs.html#updating_through_usb). Instead of precompiled firmware, use the file `build/zephyr/app_update.bin`.
+Follow the steps from [this guide](https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/device_guides/working_with_nrf/nrf53/thingy53_gs.html#updating_through_usb). Instead of precompiled firmware, use the file `build/zephyr/app_signed.hex`.
 
 ### Over BLE DFU
 
 #### Use mobile app (Android/iOS)
 
-Use [nRF Connect for Android](https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp) or [nRF Connect for iOS](https://apps.apple.com/pl/app/nrf-connect-for-mobile/id1054362403) and `build/zephyr/app_update.bin`. After connecting to the device, click on the DFU icon and select the file. When the DFU process is done, the device will boot with the new image.
+Use [nRF Connect for Android](https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp) or [nRF Connect for iOS](https://apps.apple.com/pl/app/nrf-connect-for-mobile/id1054362403) and `build/zephyr/dfu_application.zip`. After connecting to the device, click on the DFU icon and select the file. When the DFU process is done, the device will boot with the new image.
 
 #### Use `mcumgr`
 

@@ -1,5 +1,5 @@
 /* Edge Impulse ingestion SDK
- * Copyright (c) 2022 EdgeImpulse Inc.
+ * Copyright (c) 2023 EdgeImpulse Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,8 @@
 #include "sensors/ei_inertial_sensor.h"
 #include "sensors/ei_light_sensor.h"
 #include "sensors/ei_microphone.h"
+#include "wifi/wifi.h"
+#include "wifi/ei_ws_client.h"
 #include <zephyr/drivers/uart.h>
 #include <zephyr/logging/log.h>
 #include <nrfx_clock.h>
@@ -49,7 +51,6 @@ int main(void)
 {
     EiDeviceThingy53 *dev = static_cast<EiDeviceThingy53*>(EiDeviceInfo::get_device());
     uint8_t rcv_char;
-	int ret = 0;
     ATServer *at;
 
     /* output of printf is output immediately without buffering */ 
@@ -65,6 +66,7 @@ int main(void)
 	}
 
     /* Setup the inertial sensor */
+    // ei_sleep(100);
     if(ei_inertial_init() == false) {
         LOG_ERR("Inerial sensor communication error occured");
     }
@@ -97,6 +99,32 @@ int main(void)
 
     at = ei_at_init();
     at->print_prompt();
+
+#ifdef CONFIG_WIFI_NRF700X
+    char ssid[128] = { 0 };
+    char password[128] = { 0 };
+    int security = 0;
+
+    dev->get_wifi_config(ssid, password, &security);
+
+    if (strlen(ssid) != 0) {
+        cmd_wifi_connect(ssid, password, security);
+        // waithing to connect to wifi
+        if(cmd_wifi_connecting() < 0) {
+            LOG_ERR("Failed to connect to WiFi\n");
+            ei_printf("ERR: Failed to connect to WiFi\n");
+        }
+        // waiting to get dhcp config
+        if(cmd_dhcp_configured() < 0) {
+            LOG_ERR("Failed to configure DHCP\n");
+            ei_printf("ERR: Failed to configure DHCP\n");
+        }
+        ei_sleep(300);
+        LOG_INF("WiFi connected\n");
+        ei_printf("WiFi connected\n");
+        ei_ws_client_start(dev, nullptr);
+    }
+#endif
 
     while(1) {
         while(uart_fifo_read(uart, &rcv_char, 1) == 1) {
