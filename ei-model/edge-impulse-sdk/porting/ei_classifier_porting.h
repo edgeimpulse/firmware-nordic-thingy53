@@ -217,8 +217,16 @@ void ei_free(void *ptr);
 // End load porting layer depending on target
 
 // Additional configuration for specific architecture
-#if defined(__CORTEX_M) && ((__CORTEX_M == 85U) || (__CORTEX_M == 55U))
+#if defined(__CORTEX_M)
+
+#if (__CORTEX_M == 55U)
 #define EI_MAX_OVERFLOW_BUFFER_COUNT	15
+#endif
+
+#if (__CORTEX_M == 85U)
+#define EI_MAX_OVERFLOW_BUFFER_COUNT	50
+#endif
+
 #endif
 
 #if defined(CONFIG_IDF_TARGET_ESP32S3)

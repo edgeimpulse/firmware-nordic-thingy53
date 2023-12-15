@@ -24,33 +24,26 @@
 #define EI_INERTIAL_SENSOR_H
 
 /* Include ----------------------------------------------------------------- */
-#include <zephyr/kernel.h>
-#include "ei_sampler.h"
 #include "firmware-sdk/ei_fusion.h"
 
 /** Number of axis used and sample data format */
-#define ACCEL_AXIS_SAMPLED          3
-#define SIZEOF_ACCEL_AXIS_SAMPLED   (sizeof(float) * ACCEL_AXIS_SAMPLED)
-#define INERTIAL_AXIS_SAMPLED       6
+#define ACC_AXIS_SAMPLED            3
 
 /* Function prototypes ----------------------------------------------------- */
-bool ei_inertial_init(void);
-bool ei_accel_sample_start(sampler_callback callback, float sample_interval_ms);
-void ei_accel_read_data(void);
-bool ei_accel_setup_data_sampling(void);
-float *ei_fusion_inertial_read_data(int n_samples);
+bool ei_acc_init(void);
+float *ei_fusion_acc_read_data(int n_samples);
 
-static const ei_device_fusion_sensor_t inertial_sensor = {
+static const ei_device_fusion_sensor_t accelerometer_sensor = {
     // name of sensor module to be displayed in fusion list
-    "Inertial",
+    "Accelerometer",
     // number of sensor module axis
-    INERTIAL_AXIS_SAMPLED,
+    ACC_AXIS_SAMPLED,
     // sampling frequencies
-    { 5.0f, 20.0f },
+    { 20.0f, 62.5f, 100.0f },
     // axis name and units payload (must be same order as read in)
-    { {"accX", "m/s2"}, {"accY", "m/s2"}, {"accZ", "m/s2"}, { "magX", "uT  " }, { "magY", "uT  " }, { "magZ", "uT  " }, },
+    { {"accX", "m/s2"}, {"accY", "m/s2"}, {"accZ", "m/s2"} },
     // reference to read data function
-    &ei_fusion_inertial_read_data,
+    &ei_fusion_acc_read_data,
     0
 };
 

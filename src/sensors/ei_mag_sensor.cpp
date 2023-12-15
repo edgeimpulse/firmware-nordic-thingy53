@@ -1,5 +1,5 @@
 /* Edge Impulse ingestion SDK
- * Copyright (c) 2023 EdgeImpulse Inc.
+ * Copyright (c) 2022 EdgeImpulse Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
  */
 
 /* Include ----------------------------------------------------------------- */
-#include "ei_inertial_sensor.h"
+#include "ei_mag_sensor.h"
 #include "ei_device_thingy53.h"
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
 #include <zephyr/kernel.h>
@@ -30,30 +30,31 @@
 #include <zephyr/logging/log.h>
 #include <cstdint>
 
-LOG_MODULE_REGISTER(acc_sensor);
+LOG_MODULE_REGISTER(mag_sensor);
 
-static const struct device *const accel_dev = DEVICE_DT_GET(DT_ALIAS(accel0));
-static float acc_data[ACC_AXIS_SAMPLED];
-static bool inertial_init = false;
+static const struct device *const mag_dev = DEVICE_DT_GET(DT_ALIAS(magn0));
+static float mag_data[MAG_AXIS_SAMPLED];
+static bool mag_init = false;
 
 /**
  * @brief      Setup accelerometer convert value
  *
  * @return     false if communinication error occured
  */
-bool ei_acc_init(void)
+bool ei_mag_init(void)
 {
-    if (!device_is_ready(accel_dev)) {
-        LOG_ERR("sensor: device %s not ready.\n", accel_dev->name);
+
+    if (!device_is_ready(mag_dev)) {
+        LOG_ERR("sensor: device %s not ready.\n", mag_dev->name);
         return false;
     }
 
-    if(ei_add_sensor_to_fusion_list(accelerometer_sensor) == false) {
-        ei_printf("ERR: failed to register Accelerometer sensor!\n");
+    if(ei_add_sensor_to_fusion_list(mag_sensor) == false) {
+        ei_printf("ERR: failed to register Inertial sensor!\n");
         return false;
     }
 
-    inertial_init = true;
+    mag_init = true;
     return true;
 }
 
@@ -63,27 +64,27 @@ bool ei_acc_init(void)
  * @return true 
  * @return false 
  */
-static bool ei_acc_fetch_sample(void)
+static bool ei_mag_fetch_sample(void)
 {
-    struct sensor_value raw_sample[ACC_AXIS_SAMPLED];
+    struct sensor_value raw_sample[MAG_AXIS_SAMPLED];
 
-    if(inertial_init == false) {
+    if(mag_init == false) {
         return false;
     }
 
-    if (sensor_sample_fetch(accel_dev) < 0) {
-        LOG_ERR("Sample fetch error");
+    if (sensor_sample_fetch(mag_dev) < 0) {
+        LOG_ERR("fetch error");
         return false;
     }
 
-    if (sensor_channel_get(accel_dev, SENSOR_CHAN_ACCEL_XYZ, raw_sample) < 0) {
-        LOG_ERR("Failed to get accel readings\n");
+    if (sensor_channel_get(mag_dev, SENSOR_CHAN_MAGN_XYZ, &raw_sample[0]) < 0) {
+        LOG_ERR("channel get error");
         return false;
     }
     
-    acc_data[0] = (float)sensor_value_to_double(&raw_sample[0]);
-    acc_data[1] = (float)sensor_value_to_double(&raw_sample[1]);
-    acc_data[2] = (float)sensor_value_to_double(&raw_sample[2]);
+    mag_data[0] = (float)sensor_value_to_double(&raw_sample[0]) * 100.0f;
+    mag_data[1] = (float)sensor_value_to_double(&raw_sample[1]) * 100.0f;
+    mag_data[2] = (float)sensor_value_to_double(&raw_sample[2]) * 100.0f;
 
     return true;
 }
@@ -91,15 +92,16 @@ static bool ei_acc_fetch_sample(void)
 /**
  * @brief 
  * 
- * @return float* pointer to internal array with accel data
+ * @param n_samples 
+ * @return float* pointer to internal array with magnetometer data
  */
-float *ei_fusion_acc_read_data(int n_samples)
+float *ei_fusion_mag_read_data(int n_samples)
 {
-    if(ei_acc_fetch_sample() == false) {
-        for(int i = 0; i < ACC_AXIS_SAMPLED; i++) {
-            acc_data[i] = 0.0f;
+    if(ei_mag_fetch_sample() == false) {        
+        for(int i = 0; i < MAG_AXIS_SAMPLED; i++) {
+            mag_data[i] = 0.0f;
         }
     }
 
-    return acc_data;
+    return mag_data;
 }

@@ -40,7 +40,7 @@ private:
     // EiDeviceThingy53() = delete;
     std::string mac_address = "00:11:22:33:44:55:66";
     EiState state;
-    static const int standalone_sensor_num = 2;
+    static const int standalone_sensor_num = 1;
     ei_device_sensor_t standalone_sensor_list[standalone_sensor_num];
     serial_channel_t last_channel;
 
@@ -69,6 +69,9 @@ public:
 
     int set_wifi_config(const char *ssid, const char *password, const int security);
     int get_wifi_config(char *ssid, char *password, int *security);
+#if MULTI_FREQ_ENABLED == 1
+    bool start_multi_sample_thread(void (*sample_multi_read_cb)(uint8_t), float* multi_sample_interval_ms, uint8_t num_fusioned);
+#endif    
 };
 
 #endif /* EI_DEVICE_NORDIC_NRF5X_H */

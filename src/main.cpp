@@ -28,6 +28,7 @@
 #include "sensors/ei_environment_sensor.h"
 #include "sensors/ei_inertial_sensor.h"
 #include "sensors/ei_light_sensor.h"
+#include "sensors/ei_mag_sensor.h"
 #include "sensors/ei_microphone.h"
 #include "wifi/wifi.h"
 #include "wifi/ei_ws_client.h"
@@ -65,10 +66,14 @@ int main(void)
         LOG_ERR("Failed to init CDC_ACM_0\n");
 	}
 
-    /* Setup the inertial sensor */
-    // ei_sleep(100);
-    if(ei_inertial_init() == false) {
-        LOG_ERR("Inerial sensor communication error occured");
+    /* Setup the accelerometer sensor */
+    if(ei_acc_init() == false) {
+        LOG_ERR("Light sensor communication error occured");
+    }
+
+    /* Setup the magnetometer sensor */
+    if(ei_mag_init() == false) {
+        LOG_ERR("Magnetometer communication error occured");
     }
 
     /* Setup the light sensor */

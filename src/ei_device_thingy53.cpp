@@ -26,7 +26,6 @@
 #include "edge-impulse-sdk/porting/ei_classifier_porting.h"
 #include "firmware-sdk/ei_device_memory.h"
 #include "sensors/ei_microphone.h"
-#include "sensors/ei_inertial_sensor.h"
 #include <zephyr/bluetooth/addr.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <dk_buttons_and_leds.h>
@@ -150,7 +149,32 @@ static void sampler_work_handler(struct k_work *work)
 {
     EiDeviceThingy53 *dev = static_cast<EiDeviceThingy53*>(EiDeviceInfo::get_device());
 
+#if MULTI_FREQ_ENABLED == 1
+
+    if (dev->get_fusioning() == 1) {
+        dev->sample_read_callback();
+    }
+    else {
+        uint8_t flag = 0;
+        uint8_t i = 0;
+
+        dev->actual_timer += dev->get_sample_interval();  /* update actual time */
+
+        for (i = 0; i < dev->get_fusioning(); i++){
+            if (((uint32_t)(dev->actual_timer % (uint32_t)dev->multi_sample_interval.at(i))) == 0) {   /* check if period of sensor is a multiple of actual time*/
+                flag |= (1<<i);                                                                     /* if so, time to sample it! */
+            }
+        }
+
+        if (dev->sample_multi_read_callback != nullptr){
+            dev->sample_multi_read_callback(flag);        
+        }  
+            
+    }
+    
+#else
     dev->sample_read_callback();
+#endif
 }
 
 EiDeviceInfo* EiDeviceInfo::get_device(void)
@@ -175,17 +199,10 @@ EiDeviceThingy53::EiDeviceThingy53(EiDeviceMemory* mem)
     }
 
     device_type = "THINGY53     ";
-
-    standalone_sensor_list[0].name = "Accelerometer";
-    standalone_sensor_list[0].frequencies[0] = 20.0f;
-    standalone_sensor_list[0].frequencies[1] = 62.5f;
-    standalone_sensor_list[0].frequencies[2] = 100.0f;
-    standalone_sensor_list[0].start_sampling_cb = &ei_accel_setup_data_sampling;
-    standalone_sensor_list[0].max_sample_length_s = mem->get_available_sample_bytes() / (20 * sizeof(SIZEOF_ACCEL_AXIS_SAMPLED));
-    standalone_sensor_list[1].name = "Microphone";
-    standalone_sensor_list[1].frequencies[0] = 16000.0f;
-    standalone_sensor_list[1].start_sampling_cb = &ei_microphone_sample_start;
-    standalone_sensor_list[1].max_sample_length_s = mem->get_available_sample_bytes() / (16000 * sizeof(microphone_sample_t));
+    standalone_sensor_list[0].name = "Microphone";
+    standalone_sensor_list[0].frequencies[0] = 16000.0f;
+    standalone_sensor_list[0].start_sampling_cb = &ei_microphone_sample_start;
+    standalone_sensor_list[0].max_sample_length_s = mem->get_available_sample_bytes() / (16000 * sizeof(microphone_sample_t));
 }
 
 EiDeviceThingy53::~EiDeviceThingy53()
@@ -228,6 +245,10 @@ string EiDeviceThingy53::get_mac_address(void)
 bool EiDeviceThingy53::start_sample_thread(void (*sample_read_cb)(void), float sample_interval_ms)
 {
     this->sample_read_callback = sample_read_cb;
+#if MULTI_FREQ_ENABLED == 1
+    this->actual_timer = 0;
+    this->fusioning = 1;
+#endif
  
     k_timer_start(&sampler_timer, K_MSEC(sample_interval_ms), K_MSEC(sample_interval_ms));
 
@@ -238,8 +259,44 @@ bool EiDeviceThingy53::stop_sample_thread(void)
 {
     k_timer_stop(&sampler_timer);
 
+#if MULTI_FREQ_ENABLED == 1
+    this->actual_timer = 0;
+    this->fusioning = 0;
+#endif
+
     return true;
 }
+
+#if MULTI_FREQ_ENABLED == 1
+bool EiDeviceThingy53::start_multi_sample_thread(void (*sample_multi_read_cb)(uint8_t), float* multi_sample_interval_ms, uint8_t num_fusioned)
+{
+    uint8_t i;
+    uint8_t flag = 0;
+
+    this->sample_multi_read_callback = sample_multi_read_cb;
+    this->fusioning = num_fusioned;
+
+    this->multi_sample_interval.clear();
+
+    for (i = 0; i < num_fusioned; i++){
+        this->multi_sample_interval.push_back(1.f/multi_sample_interval_ms[i]*1000.f);
+    }
+
+    this->sample_interval = ei_fusion_calc_multi_gcd(this->multi_sample_interval.data(), this->fusioning);
+
+    /* force first reading */
+    for (i = 0; i < this->fusioning; i++){
+            flag |= (1<<i);
+    }
+    this->sample_multi_read_callback(flag);
+
+    this->actual_timer = 0;
+ 
+    k_timer_start(&sampler_timer, K_MSEC(this->sample_interval), K_MSEC(this->sample_interval));
+
+    return true;
+}
+#endif
 
 void EiDeviceThingy53::set_state(EiState state)
 {

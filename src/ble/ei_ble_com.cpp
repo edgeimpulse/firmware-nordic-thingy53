@@ -283,7 +283,7 @@ char* ei_ble_connect_handshake(void)
     }
 
     if (dev->get_sensor_list((const ei_device_sensor_t **)&list, &list_size) == false) {
-        LOG_WRN("Failed to get sensor list");
+        LOG_ERR("Failed to get sensor list");
         return NULL;
     }
 
@@ -291,7 +291,7 @@ char* ei_ble_connect_handshake(void)
     for(size_t i = 0; i < list_size; i++){
         cJSON *sensor = cJSON_CreateObject();
         if(NULL == cJSON_AddStringToObject(sensor, "name", list[i].name)){
-            LOG_ERR("error: cJSON_AddArrayToObject");
+            LOG_ERR("error: cJSON_AddStringToObject");
         }
         if(NULL == cJSON_AddNumberToObject(sensor, "maxSampleLengthS", (const int)list[i].max_sample_length_s)) {
             LOG_ERR("error: cJSON_AddNumberToObject");
@@ -308,12 +308,12 @@ char* ei_ble_connect_handshake(void)
         cJSON_AddItemToArray(sensors, sensor);
     }
     /************************************************************/
-    const vector<fused_sensors_t> sens_list = ei_get_sensor_fusion_list();
-    for (auto it = sens_list.begin(); it != sens_list.end(); it++) {
+    std::vector<fused_sensors_t> sens_list = ei_get_sensor_fusion_list();
+    for (std::vector<fused_sensors_t>::iterator it = sens_list.begin(); it != sens_list.end(); it++) {
         cJSON *sensor = cJSON_CreateObject();
         cJSON *frequencies = NULL;
         if(NULL == cJSON_AddStringToObject(sensor, "name", it->name.c_str())){
-            LOG_ERR("error: cJSON_AddArrayToObject");
+            LOG_ERR("error: cJSON_AddStringToObject");
         } 
         if(NULL == cJSON_AddNumberToObject(sensor, "maxSampleLengthS", (unsigned int)it->max_sample_length)) {
             LOG_ERR("error: cJSON_AddNumberToObject");
@@ -323,7 +323,7 @@ char* ei_ble_connect_handshake(void)
             LOG_ERR("error: cJSON_AddArrayToObject");
         }
         else {
-            for (auto freq = it->frequencies.begin(); freq != it->frequencies.end(); freq++) {
+            for (std::vector<float>::iterator freq = it->frequencies.begin(); freq != it->frequencies.end(); ++freq) {
                 cJSON_AddItemToArray(frequencies, cJSON_CreateNumber((const double)*freq));
             }
         }

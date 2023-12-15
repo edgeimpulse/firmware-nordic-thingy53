@@ -43,6 +43,7 @@ static uint16_t samples_per_inference;
 static inference_state_t state = INFERENCE_STOPPED;
 static bool continuous_mode = false;
 static bool debug_mode = false;
+static bool is_fusion = false;
 static float samples_circ_buff[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE];
 static int samples_wr_index = 0;
 static EiDeviceThingy53 *dev = static_cast<EiDeviceThingy53*>(EiDeviceInfo::get_device());
@@ -146,7 +147,16 @@ void ei_inference_thread(void* param1, void* param2, void* param3)
                     continue;
                 }
                 // start sampling now, don't collect samples during waiting period
+#if MULTI_FREQ_ENABLED == 1
+                if (is_fusion) {
+                    ei_multi_fusion_sample_start(&samples_callback, EI_CLASSIFIER_INTERVAL_MS);
+                }
+                else {
+                    ei_fusion_sample_start(&samples_callback, EI_CLASSIFIER_INTERVAL_MS);
+                }
+#else
                 ei_fusion_sample_start(&samples_callback, EI_CLASSIFIER_INTERVAL_MS);
+#endif
                 dev->set_state(eiStateSampling);
                 continue;
             case INFERENCE_SAMPLING:
@@ -221,6 +231,9 @@ void ei_start_impulse(bool continuous, bool debug, bool use_max_uart_speed)
 
     continuous_mode = continuous;
     debug_mode = debug;
+#if MULTI_FREQ_ENABLED == 1
+    is_fusion = ei_is_fusion();
+#endif
 
     // summary of inferencing settings (from model_metadata.h)
     ei_printf("Inferencing settings:\n");

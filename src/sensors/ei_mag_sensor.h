@@ -1,5 +1,5 @@
 /* Edge Impulse ingestion SDK
- * Copyright (c) 2023 EdgeImpulse Inc.
+ * Copyright (c) 2022 EdgeImpulse Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,14 +20,31 @@
  * SOFTWARE.
  */
 
-#ifndef EI_FUSION_SENSORS_CONFIG_H
-#define EI_FUSION_SENSORS_CONFIG_H
+#ifndef EI_MAG_SENSOR_H
+#define EI_MAG_SENSOR_H
 
-#define NUM_MAX_FUSIONS          3      // max number of sensor module combinations
+/* Include ----------------------------------------------------------------- */
+#include "firmware-sdk/ei_fusion.h"
 
-#define MULTI_FREQ_ENABLED       1
+/** Number of axis used and sample data format */
+#define MAG_AXIS_SAMPLED            3
 
-/** Format used for fusion */
-typedef float fusion_sample_format_t;
+/* Function prototypes ----------------------------------------------------- */
+bool ei_mag_init(void);
+float *ei_fusion_mag_read_data(int n_samples);
 
-#endif // EI_FUSION_SENSORS_CONFIG_H
+static const ei_device_fusion_sensor_t mag_sensor = {
+    // name of sensor module to be displayed in fusion list
+    "Magnetometer",
+    // number of sensor module axis
+    MAG_AXIS_SAMPLED,
+    // sampling frequencies
+    { 5.0f, 20.0f },
+    // axis name and units payload (must be same order as read in)
+    { { "magX", "uT  " }, { "magY", "uT  " }, { "magZ", "uT  " } },
+    // reference to read data function
+    &ei_fusion_mag_read_data,
+    0
+};
+
+#endif /* EI_MAG_SENSOR_H */

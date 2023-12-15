@@ -78,7 +78,7 @@ static int16_t *buffer_ready;
 static uint32_t current_sample;
 K_SEM_DEFINE(data_ready, 0, 1);
 
-static unsigned char ei_mic_ctx_buffer[1024];
+static unsigned char ei_mic_ctx_buffer[1024] __attribute__((aligned(4)));
 static sensor_aq_signing_ctx_t ei_mic_signing_ctx;
 static sensor_aq_ctx ei_mic_ctx = {
     { ei_mic_ctx_buffer, 1024 },
