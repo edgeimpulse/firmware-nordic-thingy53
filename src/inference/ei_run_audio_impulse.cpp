@@ -56,24 +56,12 @@ static inline inference_state_t set_thread_state(inference_state_t new_state)
     return state;
 }
 
-static void timing_and_classification(ei_impulse_result_t* result)
-{
-    ei_printf("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-        result->timing.dsp, result->timing.classification, result->timing.anomaly);
-    for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-        ei_printf("    %s: \t%f\r\n", result->classification[ix].label, result->classification[ix].value);
-    }
-#if EI_CLASSIFIER_HAS_ANOMALY == 1
-    ei_printf("    anomaly score: %f\r\n", result->anomaly);
-#endif
-}
-
-static void display_results(ei_impulse_result_t* result)
+static void process_results(ei_impulse_result_t* result)
 {
     char *string = NULL;
 
     if(dev->get_serial_channel() == UART) {
-        timing_and_classification(result);
+        display_results(result);
     }
     else {
         cJSON *response = cJSON_CreateObject();
@@ -163,12 +151,12 @@ void ei_inference_thread(void* param1, void* param2, void* param3)
 
         if(continuous_mode == true) {
             if(++print_results >= (EI_CLASSIFIER_SLICES_PER_MODEL_WINDOW >> 1)) {
-                display_results(&result);
+                process_results(&result);
                 print_results = 0;
             }
         }
         else {
-            display_results(&result);
+            process_results(&result);
         }
 
         if(continuous_mode == true) {
@@ -222,7 +210,7 @@ void ei_start_impulse(bool continuous, bool debug, bool use_max_uart_speed)
     }
 }
 
-void ei_stop_impulse(void) 
+void ei_stop_impulse(void)
 {
     if(state != INFERENCE_STOPPED) {
         set_thread_state(INFERENCE_STOPPED);

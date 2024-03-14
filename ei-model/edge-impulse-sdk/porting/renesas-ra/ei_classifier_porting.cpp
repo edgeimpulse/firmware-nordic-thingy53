@@ -272,16 +272,25 @@ __attribute__((weak)) void ei_printf_float(float f) {
  */
 void ei_putchar(char c)
 {
-    //uart_putc(c);
     ei_printf("%c", c);
 }
 
 __attribute__((weak)) void *ei_malloc(size_t size) {
-    return pvPortMalloc(size);
+    if (size > 0){
+        return pvPortMalloc(size);
+    }
+    else {
+        return NULL;
+    }
 }
 
 __attribute__((weak)) void *ei_calloc(size_t nitems, size_t size) {
-    return pvPortCalloc(nitems, size);
+    if ((size*nitems) > 0) {
+        return pvPortCalloc(nitems, size);
+    }
+    else {
+        return NULL;
+    }  
 }
 
 __attribute__((weak)) void ei_free(void *ptr) {
@@ -315,4 +324,4 @@ void operator delete[]( void * ptr )
     vPortFree ( ptr );
 }
 
-#endif // EI_PORTING_RENESASRA65 == 1
+#endif // EI_PORTING_RENESASRA8D1_FREERTOS == 1
