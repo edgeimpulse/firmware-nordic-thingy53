@@ -33,6 +33,7 @@
 #include <zephyr/logging/log.h>
 #include <nrfx_pdm.h>
 #include <zephyr/kernel.h>
+#include "edge-impulse-sdk/dsp/numpy.hpp"
 
 LOG_MODULE_REGISTER(ei_microphone, LOG_LEVEL_DBG);
 
@@ -298,7 +299,7 @@ bool ei_microphone_sample_start(void)
     else {
         LOG_ERR("%s", str_unknown_serial_channel);
     }
-    
+
 
     dev->set_state(eiStateErasingFlash);
 
@@ -524,7 +525,7 @@ bool ei_microphone_sample_start(void)
             ei_ws_send_msg(TxMsgType::SampleUploadingMsg);
             ei_ws_send_sample(0, my_size, false);
             ei_ws_send_msg(TxMsgType::SampleFinishedMsg);
-        } 
+        }
         else {
             LOG_ERR("Not uploading file, not connected to WiFi. Used buffer, from=0, to=%u.\n", my_size);
         }
@@ -573,10 +574,10 @@ static void inference_samples_callback(nrfx_pdm_evt_t const * p_evt)
 
 int ei_microphone_inference_get_data(size_t offset, size_t length, float *out_ptr)
 {
-    arm_q15_to_float(&inference.buffers[inference.buf_select ^ 1][offset], out_ptr, length);
+    ei::numpy::int16_to_float(&inference.buffers[inference.buf_select ^ 1][offset], out_ptr, length);
     inference.buf_ready = 0;
 
-    return 0;  
+    return 0;
 }
 
 bool ei_microphone_inference_start(uint32_t n_samples, float interval_ms)

@@ -167,11 +167,11 @@ static void sampler_work_handler(struct k_work *work)
         }
 
         if (dev->sample_multi_read_callback != nullptr){
-            dev->sample_multi_read_callback(flag);        
-        }  
-            
+            dev->sample_multi_read_callback(flag);
+        }
+
     }
-    
+
 #else
     dev->sample_read_callback();
 #endif
@@ -249,7 +249,7 @@ bool EiDeviceThingy53::start_sample_thread(void (*sample_read_cb)(void), float s
     this->actual_timer = 0;
     this->fusioning = 1;
 #endif
- 
+
     k_timer_start(&sampler_timer, K_MSEC(sample_interval_ms), K_MSEC(sample_interval_ms));
 
     return true;
@@ -291,7 +291,7 @@ bool EiDeviceThingy53::start_multi_sample_thread(void (*sample_multi_read_cb)(ui
     this->sample_multi_read_callback(flag);
 
     this->actual_timer = 0;
- 
+
     k_timer_start(&sampler_timer, K_MSEC(this->sample_interval), K_MSEC(this->sample_interval));
 
     return true;
