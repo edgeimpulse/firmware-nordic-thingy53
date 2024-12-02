@@ -91,7 +91,7 @@ static void process_results(ei_impulse_result_t* result)
     char *string = NULL;
 
     if(dev->get_serial_channel() == UART) {
-        display_results(result);
+        display_results(&ei_default_impulse, result);
     }
     else {
         cJSON *response = cJSON_CreateObject();
