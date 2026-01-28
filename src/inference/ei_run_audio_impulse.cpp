@@ -35,6 +35,7 @@
 #include "model-parameters/model_metadata.h"
 #if defined(EI_CLASSIFIER_SENSOR) && EI_CLASSIFIER_SENSOR == EI_CLASSIFIER_SENSOR_MICROPHONE
 #include "edge-impulse-sdk/classifier/ei_run_classifier.h"
+#include "edge-impulse-sdk/classifier/ei_print_results.h"
 #include "edge-impulse-sdk/dsp/numpy.hpp"
 #include "sensors/ei_microphone.h"
 #include "ei_device_thingy53.h"
@@ -73,7 +74,7 @@ static void process_results(ei_impulse_result_t* result)
     char *string = NULL;
 
     if(dev->get_serial_channel() == UART) {
-        display_results(&ei_default_impulse, result);
+        ei_print_results(&ei_default_impulse, result);
     }
     else {
         cJSON *response = cJSON_CreateObject();
